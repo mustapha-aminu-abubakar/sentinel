@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	analyticshttp "sentinel/internal/analytics/http"
 	"sentinel/internal/engine"
 	"sentinel/internal/http/handlers"
 	"sentinel/internal/repository"
 )
 
-func NewRouter(clientRepo repository.ClientRepository, ruleRepo repository.RateRuleRepository, decisionEngine *engine.DecisionEngine) http.Handler {
+func NewRouter(clientRepo repository.ClientRepository, ruleRepo repository.RateRuleRepository, decisionEngine *engine.DecisionEngine, pool *pgxpool.Pool) http.Handler {
 	if decisionEngine == nil {
 		panic("router: decisionEngine is required for POST /v1/check")
 	}
@@ -33,6 +36,10 @@ func NewRouter(clientRepo repository.ClientRepository, ruleRepo repository.RateR
 
 	check := handlers.NewCheckHandler(decisionEngine)
 	mux.HandleFunc("POST /v1/check", check.Check)
+
+	analytics := analyticshttp.NewAnalyticsHandler(pool)
+	mux.HandleFunc("GET /analytics/usage", analytics.GetUsage)
+	mux.HandleFunc("GET /analytics/latency", analytics.GetLatency)
 
 	return corsMiddleware(mux)
 }

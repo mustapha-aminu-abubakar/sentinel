@@ -73,7 +73,7 @@ func main() {
 	pgLimiter := engine.NewPostgresLimiter(pool)
 	eng := engine.New(windowLimiter, resolver, pgLimiter)
 
-	handler := router.NewRouter(clientRepo, ruleRepo, eng)
+	handler := router.NewRouter(clientRepo, ruleRepo, eng, pool)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.HTTPPort),

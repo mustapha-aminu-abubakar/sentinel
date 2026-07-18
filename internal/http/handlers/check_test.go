@@ -48,7 +48,7 @@ func routerWithEngine(dec limiter.Decision) http.Handler {
 	)
 	clientRepo := fake.NewClientRepository()
 	ruleRepo := fake.NewRateRuleRepository()
-	return router.NewRouter(clientRepo, ruleRepo, eng)
+	return router.NewRouter(clientRepo, ruleRepo, eng, nil)
 }
 
 func TestCheck_Allowed(t *testing.T) {
