@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1.7
-# Builds the sentinel-api image. Multi-stage Go build with a distroless runtime.
+# Builds the analytics-worker image. Same builder pattern as Dockerfile;
+# runtime is distroless and runs only the worker binary.
 # Consumes env vars (no baked-in secrets):
-#   PORT (default 8080), BLUEPRINT_DB_HOST/PORT/DATABASE/USERNAME/PASSWORD/SCHEMA,
+#   BLUEPRINT_DB_HOST/PORT/DATABASE/USERNAME/PASSWORD/SCHEMA,
 #   REDIS_HOST, REDIS_PORT, CACHED_RULE_TTL, KAFKA_BROKERS (csv host:port)
 # See internal/config/config.go for the canonical list.
 
@@ -14,12 +15,11 @@ RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY . .
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /out/sentinel-api ./cmd/api
+    CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /out/analytics-worker ./cmd/analytics-worker
 
 FROM gcr.io/distroless/static-debian12:nonroot
 WORKDIR /
-COPY --from=build /out/sentinel-api /sentinel-api
+COPY --from=build /out/analytics-worker /analytics-worker
 COPY --from=build /src/migrations /migrations
 USER 65532:65532
-EXPOSE 8080
-ENTRYPOINT ["/sentinel-api"]
+ENTRYPOINT ["/analytics-worker"]

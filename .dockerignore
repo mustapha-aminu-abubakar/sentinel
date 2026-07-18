@@ -1,0 +1,27 @@
+# Build context for Dockerfile and Dockerfile.worker (Go services at repo root).
+# Excludes everything the Go toolchain does not need at build time and
+# the sentinel-dashboard (which has its own build context).
+.git
+.github
+.air.toml
+.idea
+.vscode
+sentinel-dashboard
+main
+*.test
+*.out
+*.exe
+*.dll
+*.so
+*.dylib
+tmp/
+coverage/
+docs/
+dist/
+tests/
+.env*
+AGENTS.md
+CLAUDE.md
+Dockerfile
+Dockerfile.worker
+docker-compose.yml

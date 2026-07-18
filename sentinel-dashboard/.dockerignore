@@ -1,0 +1,22 @@
+# Build context for sentinel-dashboard/Dockerfile.
+# Excludes everything Next.js does not need at build time.
+node_modules
+.next
+out
+build
+dist
+tests
+coverage
+.git
+README.md
+AGENTS.md
+CLAUDE.md
+*.tsbuildinfo
+next-env.d.ts
+.env*
+.pnp.*
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
