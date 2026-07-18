@@ -1,0 +1,20 @@
+version: "2"
+sql:
+  - engine: "postgresql"
+    schema: "migrations/"
+    queries: "internal/repository/queries/"
+    gen:
+      go:
+        package: "db"
+        out: "internal/repository/db"
+        sql_package: "pgx/v5"
+        overrides:
+          - column: "clients.id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+          - column: "rate_rules.id"
+            go_type:
+              import: "github.com/google/uuid"
+              type: "UUID"
+
