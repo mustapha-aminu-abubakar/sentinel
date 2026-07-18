@@ -4,11 +4,16 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"sentinel/internal/engine"
 	"sentinel/internal/http/handlers"
 	"sentinel/internal/repository"
 )
 
-func NewRouter(clientRepo repository.ClientRepository, ruleRepo repository.RateRuleRepository) http.Handler {
+func NewRouter(clientRepo repository.ClientRepository, ruleRepo repository.RateRuleRepository, decisionEngine *engine.DecisionEngine) http.Handler {
+	if decisionEngine == nil {
+		panic("router: decisionEngine is required for POST /v1/check")
+	}
+
 	mux := http.NewServeMux()
 
 	clients := handlers.NewClientsHandler(clientRepo)
@@ -25,6 +30,9 @@ func NewRouter(clientRepo repository.ClientRepository, ruleRepo repository.RateR
 	mux.HandleFunc("POST /rules", rules.Create)
 	mux.HandleFunc("GET /rules/{id}", rules.Get)
 	mux.HandleFunc("PATCH /rules/{id}", rules.Update)
+
+	check := handlers.NewCheckHandler(decisionEngine)
+	mux.HandleFunc("POST /v1/check", check.Check)
 
 	return corsMiddleware(mux)
 }

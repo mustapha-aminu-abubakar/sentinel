@@ -48,6 +48,21 @@ type RuleResponse struct {
 	UpdatedAt       string `json:"updated_at"`
 }
 
+type CheckRequest struct {
+	ClientID string `json:"client_id"`
+	API      string `json:"api"`
+}
+
+type CheckAllowedResponse struct {
+	Allowed   bool `json:"allowed"`
+	Remaining int  `json:"remaining"`
+}
+
+type CheckRejectedResponse struct {
+	Allowed    bool `json:"allowed"`
+	RetryAfter int  `json:"retry_after"`
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }

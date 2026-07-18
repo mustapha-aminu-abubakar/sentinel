@@ -6,12 +6,18 @@ import (
 	"log"
 	"net/http"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/v9"
+
+	"sentinel/internal/cache"
 	"sentinel/internal/config"
 	"sentinel/internal/database"
+	"sentinel/internal/engine"
 	"sentinel/internal/http/router"
+	"sentinel/internal/limiter"
 	"sentinel/internal/repository/postgres"
 )
 
@@ -52,7 +58,22 @@ func main() {
 	clientRepo := postgres.NewClientRepository(pool)
 	ruleRepo := postgres.NewRateRuleRepository(pool)
 
-	handler := router.NewRouter(clientRepo, ruleRepo)
+	rdb := redis.NewClient(&redis.Options{
+		Addr: cfg.RedisHost + ":" + cfg.RedisPort,
+	})
+	defer rdb.Close()
+
+	ruleStore := cache.NewPostgresRuleStore(pool)
+	ttlSec, err := strconv.Atoi(cfg.CacheRuleTTL)
+	if err != nil || ttlSec <= 0 {
+		log.Fatalf("invalid CACHED_RULE_TTL %q: must be a positive integer", cfg.CacheRuleTTL)
+	}
+	resolver := cache.NewRuleResolver(rdb, ruleStore, time.Duration(ttlSec)*time.Second)
+	windowLimiter := limiter.New(rdb)
+	pgLimiter := engine.NewPostgresLimiter(pool)
+	eng := engine.New(windowLimiter, resolver, pgLimiter)
+
+	handler := router.NewRouter(clientRepo, ruleRepo, eng)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.HTTPPort),

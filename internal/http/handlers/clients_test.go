@@ -11,16 +11,22 @@ import (
 	"github.com/google/uuid"
 
 	"sentinel/internal/domain"
+	"sentinel/internal/engine"
 	"sentinel/internal/http/dto"
-	"sentinel/internal/repository/fake"
-
 	"sentinel/internal/http/router"
+	"sentinel/internal/limiter"
+	"sentinel/internal/repository/fake"
 )
 
 func routerWithFakes() (http.Handler, *fake.ClientRepository, *fake.RateRuleRepository) {
 	clientRepo := fake.NewClientRepository()
 	ruleRepo := fake.NewRateRuleRepository()
-	return router.NewRouter(clientRepo, ruleRepo), clientRepo, ruleRepo
+	eng := engine.New(
+		&fakeLimiter{dec: limiter.Decision{Allowed: true, Remaining: -1}},
+		&fakeResolver{rule: limiter.Rule{RequestsAllowed: 10, WindowSeconds: 60}},
+		&fakePostgresLimiter{},
+	)
+	return router.NewRouter(clientRepo, ruleRepo, eng), clientRepo, ruleRepo
 }
 
 func mustCreateClient(t *testing.T, repo *fake.ClientRepository, name string) domain.Client {
