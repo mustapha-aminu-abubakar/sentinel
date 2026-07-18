@@ -16,30 +16,25 @@ import (
 var testPool *pgxpool.Pool
 
 func TestMain(m *testing.M) {
-	if _, ok := os.LookupEnv("DATABASE_URL_TEST"); ok {
-		testPool = mustConnect(os.Getenv("DATABASE_URL_TEST"))
+	var dsn string
+	if envDSN, ok := os.LookupEnv("DATABASE_URL_TEST"); ok {
+		dsn = envDSN
+		testPool = mustConnect(dsn)
 	} else {
 		var teardown func()
 		var err error
-		testPool, teardown, err = dbtest.StartPostgres()
+		testPool, dsn, teardown, err = dbtest.StartPostgresWithDSN()
 		if err != nil {
 			panic("failed to start postgres: " + err.Error())
 		}
 		defer teardown()
 	}
 
-	if err := dbtest.RunMigrations(dsn(), "../../../migrations"); err != nil {
+	if err := dbtest.RunMigrations(dsn, "../../../migrations"); err != nil {
 		panic("failed to run migrations: " + err.Error())
 	}
 
 	m.Run()
-}
-
-func dsn() string {
-	if dsn, ok := os.LookupEnv("DATABASE_URL_TEST"); ok {
-		return dsn
-	}
-	return ""
 }
 
 func mustConnect(dsn string) *pgxpool.Pool {

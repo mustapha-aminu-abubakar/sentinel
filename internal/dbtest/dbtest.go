@@ -13,6 +13,18 @@ import (
 )
 
 func StartPostgres() (*pgxpool.Pool, func(), error) {
+	pool, _, teardown, err := startPostgres()
+	if err != nil {
+		return nil, nil, err
+	}
+	return pool, teardown, nil
+}
+
+func StartPostgresWithDSN() (*pgxpool.Pool, string, func(), error) {
+	return startPostgres()
+}
+
+func startPostgres() (*pgxpool.Pool, string, func(), error) {
 	dbName := "sentinel_test"
 	dbPwd := "password"
 	dbUser := "user"
@@ -30,17 +42,17 @@ func StartPostgres() (*pgxpool.Pool, func(), error) {
 		),
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("start postgres container: %w", err)
+		return nil, "", nil, fmt.Errorf("start postgres container: %w", err)
 	}
 
 	host, err := container.Host(context.Background())
 	if err != nil {
-		return nil, nil, fmt.Errorf("get container host: %w", err)
+		return nil, "", nil, fmt.Errorf("get container host: %w", err)
 	}
 
 	port, err := container.MappedPort(context.Background(), "5432/tcp")
 	if err != nil {
-		return nil, nil, fmt.Errorf("get container port: %w", err)
+		return nil, "", nil, fmt.Errorf("get container port: %w", err)
 	}
 
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=public",
@@ -48,12 +60,12 @@ func StartPostgres() (*pgxpool.Pool, func(), error) {
 
 	pool, err := pgxpool.New(context.Background(), dsn)
 	if err != nil {
-		return nil, nil, fmt.Errorf("create pool: %w", err)
+		return nil, "", nil, fmt.Errorf("create pool: %w", err)
 	}
 
 	if err := pool.Ping(context.Background()); err != nil {
 		pool.Close()
-		return nil, nil, fmt.Errorf("ping pool: %w", err)
+		return nil, "", nil, fmt.Errorf("ping pool: %w", err)
 	}
 
 	teardown := func() {
@@ -63,5 +75,5 @@ func StartPostgres() (*pgxpool.Pool, func(), error) {
 		}
 	}
 
-	return pool, teardown, nil
+	return pool, dsn, teardown, nil
 }
