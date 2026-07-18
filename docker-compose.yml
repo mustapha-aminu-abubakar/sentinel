@@ -16,12 +16,22 @@ services:
       BLUEPRINT_DB_USERNAME: ${BLUEPRINT_DB_USERNAME}
       BLUEPRINT_DB_PASSWORD: ${BLUEPRINT_DB_PASSWORD}
       BLUEPRINT_DB_SCHEMA: ${BLUEPRINT_DB_SCHEMA}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CACHED_RULE_TTL: ${CACHED_RULE_TTL}
     depends_on:
-      psql_bp:
+      postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - blueprint
-  psql_bp:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - blueprint
+  postgres:
     image: postgres:latest
     restart: unless-stopped
     environment:

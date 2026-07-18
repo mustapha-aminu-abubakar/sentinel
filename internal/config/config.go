@@ -6,24 +6,30 @@ import (
 )
 
 type Config struct {
-	DBHost     string
-	DBPort     string
-	DBDatabase string
-	DBUsername string
-	DBPassword string
-	DBSchema   string
-	HTTPPort   string
+	DBHost        string
+	DBPort        string
+	DBDatabase    string
+	DBUsername    string
+	DBPassword    string
+	DBSchema      string
+	HTTPPort      string
+	RedisHost     string
+	RedisPort     string
+	CacheRuleTTL  string
 }
 
 func Load() Config {
 	return Config{
-		DBHost:     getEnv("BLUEPRINT_DB_HOST", "localhost"),
-		DBPort:     getEnv("BLUEPRINT_DB_PORT", "5432"),
-		DBDatabase: getEnv("BLUEPRINT_DB_DATABASE", "sentinel"),
-		DBUsername: getEnv("BLUEPRINT_DB_USERNAME", "postgres"),
-		DBPassword: getEnv("BLUEPRINT_DB_PASSWORD", "postgres"),
-		DBSchema:   getEnv("BLUEPRINT_DB_SCHEMA", "public"),
-		HTTPPort:   getEnv("PORT", "8080"),
+		DBHost:        getEnv("BLUEPRINT_DB_HOST", "localhost"),
+		DBPort:        getEnv("BLUEPRINT_DB_PORT", "5432"),
+		DBDatabase:    getEnv("BLUEPRINT_DB_DATABASE", "sentinel"),
+		DBUsername:    getEnv("BLUEPRINT_DB_USERNAME", "postgres"),
+		DBPassword:    getEnv("BLUEPRINT_DB_PASSWORD", "postgres"),
+		DBSchema:      getEnv("BLUEPRINT_DB_SCHEMA", "public"),
+		HTTPPort:      getEnv("PORT", "8080"),
+		RedisHost:     getEnv("REDIS_HOST", "localhost"),
+		RedisPort:     getEnv("REDIS_PORT", "6379"),
+		CacheRuleTTL:  getEnv("CACHED_RULE_TTL", "60"),
 	}
 }
 
