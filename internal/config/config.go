@@ -16,6 +16,7 @@ type Config struct {
 	RedisHost     string
 	RedisPort     string
 	CacheRuleTTL  string
+	KafkaBrokers  string
 }
 
 func Load() Config {
@@ -30,6 +31,7 @@ func Load() Config {
 		RedisHost:     getEnv("REDIS_HOST", "localhost"),
 		RedisPort:     getEnv("REDIS_PORT", "6379"),
 		CacheRuleTTL:  getEnv("CACHED_RULE_TTL", "60"),
+		KafkaBrokers:  getEnv("KAFKA_BROKERS", "localhost:9092"),
 	}
 }
 
