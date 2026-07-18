@@ -11,22 +11,19 @@ import (
 
 	"sentinel/internal/config"
 	"sentinel/internal/database"
-	"sentinel/internal/server"
+	"sentinel/internal/http/router"
+	"sentinel/internal/repository/postgres"
 )
 
 func gracefulShutdown(apiServer *http.Server, done chan bool) {
-	// Create context that listens for the interrupt signal from the OS.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
-	// Listen for the interrupt signal.
 	<-ctx.Done()
 
 	log.Println("shutting down gracefully, press Ctrl+C again to force")
-	stop() // Allow Ctrl+C to force shutdown
+	stop()
 
-	// The context is used to inform the server it has 5 seconds to finish
-	// the request it is currently handling
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := apiServer.Shutdown(ctx); err != nil {
@@ -34,35 +31,46 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 	}
 
 	log.Println("Server exiting")
-
-	// Notify the main goroutine that the shutdown is complete
 	done <- true
 }
 
 func main() {
 	cfg := config.Load()
 
-	db := database.New()
-	if err := database.RunMigrations(db.DB(), "migrations/"); err != nil {
+	migrationDB := database.New()
+	if err := database.RunMigrations(migrationDB.DB(), "migrations/"); err != nil {
 		log.Fatalf("failed to run migrations: %v", err)
 	}
+	migrationDB.Close()
 
-	_ = cfg // config is consumed by the HTTP server via server.NewServer()
+	pool, err := database.NewPool(context.Background())
+	if err != nil {
+		log.Fatalf("failed to create database pool: %v", err)
+	}
+	defer pool.Close()
 
-	server := server.NewServer()
+	clientRepo := postgres.NewClientRepository(pool)
+	ruleRepo := postgres.NewRateRuleRepository(pool)
 
-	// Create a done channel to signal when the shutdown is complete
+	handler := router.NewRouter(clientRepo, ruleRepo)
+
+	server := &http.Server{
+		Addr:         fmt.Sprintf(":%s", cfg.HTTPPort),
+		Handler:      handler,
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
+	}
+
 	done := make(chan bool, 1)
-
-	// Run graceful shutdown in a separate goroutine
 	go gracefulShutdown(server, done)
 
-	err := server.ListenAndServe()
+	log.Printf("Server starting on port %s", cfg.HTTPPort)
+	err = server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		panic(fmt.Sprintf("http server error: %s", err))
 	}
 
-	// Wait for the graceful shutdown to complete
 	<-done
 	log.Println("Graceful shutdown complete.")
 }
