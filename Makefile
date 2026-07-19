@@ -14,11 +14,11 @@ run:
 	@go run cmd/api/main.go
 # Create DB container
 docker-run:
-	@if docker compose up --build 2>/dev/null; then \
+	@if docker compose up --build --scale sentinel-api=3 2>/dev/null; then \
 		: ; \
 	else \
 		echo "Falling back to Docker Compose V1"; \
-		docker-compose up --build; \
+		docker-compose up --build --scale sentinel-api=3; \
 	fi
 
 # Shutdown DB container
