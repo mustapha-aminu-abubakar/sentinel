@@ -8,13 +8,14 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	analyticshttp "sentinel/internal/analytics/http"
+	"sentinel/internal/analytics/emitter"
 	"sentinel/internal/engine"
 	"sentinel/internal/http/handlers"
 	"sentinel/internal/repository"
 )
 
 // NewRouter builds the full HTTP handler with all routes and CORS middleware.
-func NewRouter(clientRepo repository.ClientRepository, ruleRepo repository.RateRuleRepository, decisionEngine *engine.DecisionEngine, pool *pgxpool.Pool) http.Handler {
+func NewRouter(clientRepo repository.ClientRepository, ruleRepo repository.RateRuleRepository, decisionEngine *engine.DecisionEngine, pool *pgxpool.Pool, em emitter.EventEmitter) http.Handler {
 	if decisionEngine == nil {
 		panic("router: decisionEngine is required for POST /v1/check")
 	}
@@ -36,7 +37,7 @@ func NewRouter(clientRepo repository.ClientRepository, ruleRepo repository.RateR
 	mux.HandleFunc("GET /rules/{id}", rules.Get)
 	mux.HandleFunc("PATCH /rules/{id}", rules.Update)
 
-	check := handlers.NewCheckHandler(decisionEngine)
+	check := handlers.NewCheckHandler(decisionEngine, em)
 	mux.HandleFunc("POST /v1/check", check.Check)
 
 	analytics := analyticshttp.NewAnalyticsHandler(pool)

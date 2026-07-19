@@ -7,11 +7,14 @@ import (
 	"net/http"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 
+	"sentinel/internal/analytics/emitter"
+	"sentinel/internal/analytics/event"
 	"sentinel/internal/cache"
 	"sentinel/internal/config"
 	"sentinel/internal/database"
@@ -75,7 +78,11 @@ func main() {
 	pgLimiter := engine.NewPostgresLimiter(pool)
 	eng := engine.New(windowLimiter, resolver, pgLimiter)
 
-	handler := router.NewRouter(clientRepo, ruleRepo, eng, pool)
+	brokers := strings.Split(cfg.KafkaBrokers, ",")
+	kafkaEmitter := emitter.NewKafkaEmitter(brokers, event.TopicCheckEvents, 10000, 2)
+	defer kafkaEmitter.Close()
+
+	handler := router.NewRouter(clientRepo, ruleRepo, eng, pool, kafkaEmitter)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.HTTPPort),

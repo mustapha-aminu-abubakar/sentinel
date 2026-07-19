@@ -132,7 +132,6 @@ func (e *KafkaEmitter) worker(ctx context.Context) {
 			}
 
 			msg := kafka.Message{
-				Topic: e.topic,
 				Value: data,
 			}
 

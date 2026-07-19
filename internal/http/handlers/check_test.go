@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"sentinel/internal/analytics/emitter"
 	"sentinel/internal/engine"
 	"sentinel/internal/http/dto"
 	"sentinel/internal/http/router"
@@ -48,7 +49,7 @@ func routerWithEngine(dec limiter.Decision) http.Handler {
 	)
 	clientRepo := fake.NewClientRepository()
 	ruleRepo := fake.NewRateRuleRepository()
-	return router.NewRouter(clientRepo, ruleRepo, eng, nil)
+	return router.NewRouter(clientRepo, ruleRepo, eng, nil, emitter.NoopEmitter{})
 }
 
 func TestCheck_Allowed(t *testing.T) {

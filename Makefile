@@ -39,6 +39,10 @@ itest:
 	@echo "Running integration tests..."
 	@go test ./internal/database -v
 
+# E2E smoke test (requires `make docker-run`)
+e2e-script:
+	@scripts/e2e.sh
+
 # Clean the binary
 clean:
 	@echo "Cleaning..."
@@ -61,4 +65,4 @@ watch:
             fi; \
         fi
 
-.PHONY: all build run test clean watch docker-run docker-down itest
+.PHONY: all build run test clean watch docker-run docker-down itest e2e-script
