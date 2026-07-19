@@ -1,8 +1,8 @@
 'use client'
 
 import {
-  AreaChart,
-  Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -45,7 +45,7 @@ export function RequestVolumeChart({
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <AreaChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+      <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
         <XAxis
           dataKey="bucket"
@@ -73,26 +73,24 @@ export function RequestVolumeChart({
         />
         <Legend />
         {showAllowed && (
-          <Area
+          <Bar
             dataKey="allowed"
             name="Allowed"
             stackId="1"
-            stroke="var(--chart-2)"
             fill="var(--chart-2)"
-            fillOpacity={0.3}
+            radius={[4, 4, 0, 0]}
           />
         )}
         {showRejected && (
-          <Area
+          <Bar
             dataKey="rejected"
             name="Rejected"
             stackId="1"
-            stroke="var(--chart-5)"
             fill="var(--chart-5)"
-            fillOpacity={0.3}
+            radius={[4, 4, 0, 0]}
           />
         )}
-      </AreaChart>
+      </BarChart>
     </ResponsiveContainer>
   )
 }

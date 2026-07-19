@@ -1,8 +1,8 @@
 'use client'
 
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -36,7 +36,7 @@ export function LatencyChart({ data, loading, range }: LatencyChartProps) {
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+      <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
         <XAxis
           dataKey="bucket"
@@ -64,22 +64,20 @@ export function LatencyChart({ data, loading, range }: LatencyChartProps) {
           }}
         />
         <Legend />
-        <Line
+        <Bar
           dataKey="avgLatencyMs"
           name="Avg Latency"
-          stroke="var(--chart-1)"
-          strokeWidth={2}
-          dot={false}
+          fill="var(--chart-1)"
+          radius={[4, 4, 0, 0]}
         />
-        <Line
+        <Bar
           dataKey="p95LatencyMs"
           name="P95 Latency"
-          stroke="var(--chart-3)"
-          strokeWidth={2}
-          strokeDasharray="4 4"
-          dot={false}
+          fill="var(--chart-3)"
+          fillOpacity={0.7}
+          radius={[4, 4, 0, 0]}
         />
-      </LineChart>
+      </BarChart>
     </ResponsiveContainer>
   )
 }
