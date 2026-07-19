@@ -54,6 +54,7 @@ Install dependencies first:
 ```bash
 # Copy environment file
 cp .env.example .env
+cp ./sentinel-dashboard/.env.local.example ./sentinel-dashboard/.env.local
 
 # Install Go dependencies
 go mod download
@@ -61,6 +62,7 @@ go mod download
 # Install dashboard dependencies
 cd sentinel-dashboard && npm install && cd ..
 
+# Install make (if not already installed)
 # macOS: make is pre-installed
 # Linux: sudo apt install make      (Debian/Ubuntu)
 #         sudo dnf install make      (Fedora)
