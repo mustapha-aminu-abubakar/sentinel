@@ -68,6 +68,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: api
     restart: unless-stopped
     environment:
       APP_ENV: production
@@ -108,7 +109,8 @@ services:
   analytics-worker:
     build:
       context: .
-      dockerfile: Dockerfile.worker
+      dockerfile: Dockerfile
+      target: worker
     restart: unless-stopped
     environment:
       APP_ENV: production
