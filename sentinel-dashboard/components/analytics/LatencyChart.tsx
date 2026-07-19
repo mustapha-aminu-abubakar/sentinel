@@ -66,14 +66,14 @@ export function LatencyChart({ data, loading }: LatencyChartProps) {
         />
         <Legend />
         <Line
-          dataKey="avgLatencyMs"
+          dataKey="avg_latency_ms"
           name="Avg Latency"
           stroke="var(--chart-1)"
           strokeWidth={2}
           dot={false}
         />
         <Line
-          dataKey="p95LatencyMs"
+          dataKey="p95_latency_ms"
           name="P95 Latency"
           stroke="var(--chart-3)"
           strokeWidth={2}

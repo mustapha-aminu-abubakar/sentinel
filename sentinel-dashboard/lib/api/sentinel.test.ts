@@ -51,17 +51,35 @@ describe('qs', () => {
 })
 
 describe('listClients', () => {
-  it('calls GET /clients and returns clients', async () => {
-    const fetch = mockFetch(200, [{ id: '1', name: 'Test' }])
+  it('unwraps envelope and transforms snake_case keys', async () => {
+    const fetch = mockFetch(200, {
+      clients: [
+        {
+          id: '1',
+          name: 'Test',
+          status: 'active',
+          created_at: '2024-01-01T00:00:00Z',
+          updated_at: '2024-01-02T00:00:00Z',
+        },
+      ],
+    })
     const result = await listClients()
     expect(fetch).toHaveBeenCalledWith(`${BASE}/clients`, expect.any(Object))
-    expect(result).toEqual([{ id: '1', name: 'Test' }])
+    expect(result).toEqual([
+      {
+        id: '1',
+        name: 'Test',
+        status: 'active',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-02T00:00:00Z',
+      },
+    ])
   })
 })
 
 describe('createClient', () => {
   it('calls POST /clients with name', async () => {
-    const fetch = mockFetch(201, { id: '1', name: 'New', status: 'active', createdAt: '', updatedAt: '' })
+    const fetch = mockFetch(201, { id: '1', name: 'New', status: 'active', created_at: '', updated_at: '' })
     const result = await createClient({ name: 'New' })
     expect(fetch).toHaveBeenCalledWith(`${BASE}/clients`, {
       method: 'POST',
@@ -69,12 +87,13 @@ describe('createClient', () => {
       body: JSON.stringify({ name: 'New' }),
     })
     expect(result.name).toBe('New')
+    expect(result.createdAt).toBe('')
   })
 })
 
 describe('updateClient', () => {
   it('calls PATCH /clients/:id', async () => {
-    const fetch = mockFetch(200, { id: '1', name: 'Updated', status: 'inactive', createdAt: '', updatedAt: '' })
+    const fetch = mockFetch(200, { id: '1', name: 'Updated', status: 'inactive', created_at: '', updated_at: '' })
     const result = await updateClient('1', { name: 'Updated', status: 'inactive' })
     expect(fetch).toHaveBeenCalledWith(`${BASE}/clients/1`, {
       method: 'PATCH',
@@ -86,62 +105,112 @@ describe('updateClient', () => {
 })
 
 describe('listRules', () => {
-  it('calls GET /rules', async () => {
-    const fetch = mockFetch(200, [])
-    await listRules()
+  it('unwraps envelope and transforms snake_case keys', async () => {
+    const mockRule = {
+      id: 'r1',
+      client_id: 'c1',
+      api: 'stripe',
+      requests_allowed: 100,
+      window_seconds: 60,
+      created_at: '2024-01-01T00:00:00Z',
+      updated_at: '2024-01-02T00:00:00Z',
+    }
+    const fetch = mockFetch(200, { rules: [mockRule] })
+    const result = await listRules()
     expect(fetch).toHaveBeenCalledWith(`${BASE}/rules`, expect.any(Object))
+    expect(result).toEqual([
+      {
+        id: 'r1',
+        clientId: 'c1',
+        api: 'stripe',
+        requestsAllowed: 100,
+        windowSeconds: 60,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-02T00:00:00Z',
+      },
+    ])
   })
 
-  it('appends clientId query param', async () => {
-    const fetch = mockFetch(200, [])
+  it('sends client_id query param', async () => {
+    const fetch = mockFetch(200, { rules: [] })
     await listRules({ clientId: 'c1' })
-    expect(fetch).toHaveBeenCalledWith(`${BASE}/rules?clientId=c1`, expect.any(Object))
+    expect(fetch).toHaveBeenCalledWith(`${BASE}/rules?client_id=c1`, expect.any(Object))
   })
 })
 
 describe('createRule', () => {
-  it('calls POST /rules with payload', async () => {
+  it('sends snake_case body and transforms response', async () => {
     const payload = { clientId: 'c1', api: 'stripe', requestsAllowed: 100, windowSeconds: 60 }
-    const fetch = mockFetch(201, { id: 'r1', ...payload, createdAt: '', updatedAt: '' })
+    const fetch = mockFetch(201, {
+      id: 'r1',
+      client_id: 'c1',
+      api: 'stripe',
+      requests_allowed: 100,
+      window_seconds: 60,
+      created_at: '',
+      updated_at: '',
+    })
     const result = await createRule(payload)
     expect(fetch).toHaveBeenCalledWith(`${BASE}/rules`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        client_id: 'c1',
+        api: 'stripe',
+        requests_allowed: 100,
+        window_seconds: 60,
+      }),
     })
-    expect(result.id).toBe('r1')
+    expect(result).toEqual({
+      id: 'r1',
+      clientId: 'c1',
+      api: 'stripe',
+      requestsAllowed: 100,
+      windowSeconds: 60,
+      createdAt: '',
+      updatedAt: '',
+    })
   })
 })
 
 describe('updateRule', () => {
-  it('calls PATCH /rules/:id', async () => {
-    const fetch = mockFetch(200, { id: 'r1', requestsAllowed: 500 })
-    await updateRule('r1', { requestsAllowed: 500 })
+  it('sends snake_case body and transforms response', async () => {
+    const fetch = mockFetch(200, {
+      id: 'r1',
+      requests_allowed: 500,
+      window_seconds: 30,
+    })
+    const result = await updateRule('r1', { requestsAllowed: 500, windowSeconds: 30 })
     expect(fetch).toHaveBeenCalledWith(`${BASE}/rules/r1`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requestsAllowed: 500 }),
+      body: JSON.stringify({ requests_allowed: 500, window_seconds: 30 }),
+    })
+    expect(result).toMatchObject({
+      id: 'r1',
+      requestsAllowed: 500,
+      windowSeconds: 30,
     })
   })
 })
 
 describe('getUsage', () => {
-  it('calls GET /analytics/usage with query params', async () => {
+  it('sends snake_case query params', async () => {
     const fetch = mockFetch(200, [])
     await getUsage({ clientId: 'c1', from: '2024-01-01', to: '2024-01-07' })
     expect(fetch).toHaveBeenCalledWith(
-      `${BASE}/analytics/usage?clientId=c1&from=2024-01-01&to=2024-01-07`,
+      `${BASE}/analytics/usage?client_id=c1&from=2024-01-01&to=2024-01-07`,
       expect.any(Object)
     )
   })
 })
 
 describe('getLatency', () => {
-  it('calls GET /analytics/latency with query params', async () => {
+  it('sends snake_case query params', async () => {
     const fetch = mockFetch(200, [])
     await getLatency({ clientId: 'c1', from: '2024-01-01', to: '2024-01-07' })
     expect(fetch).toHaveBeenCalledWith(
-      `${BASE}/analytics/latency?clientId=c1&from=2024-01-01&to=2024-01-07`,
+      `${BASE}/analytics/latency?client_id=c1&from=2024-01-01&to=2024-01-07`,
       expect.any(Object)
     )
   })
@@ -169,8 +238,8 @@ describe('sentinelKeys', () => {
   it('returns stable cache keys', () => {
     expect(sentinelKeys.clients()).toBe('/clients')
     expect(sentinelKeys.rules()).toBe('/rules')
-    expect(sentinelKeys.rules({ clientId: 'c1' })).toBe('/rules?clientId=c1')
-    expect(sentinelKeys.usage({ clientId: 'c1' })).toBe('/analytics/usage?clientId=c1')
+    expect(sentinelKeys.rules({ clientId: 'c1' })).toBe('/rules?client_id=c1')
+    expect(sentinelKeys.usage({ clientId: 'c1' })).toBe('/analytics/usage?client_id=c1')
     expect(sentinelKeys.latency({ from: '2024-01-01' })).toBe('/analytics/latency?from=2024-01-01')
   })
 })

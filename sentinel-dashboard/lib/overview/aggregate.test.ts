@@ -48,15 +48,15 @@ describe('weightedAvgLatency', () => {
 
   it('returns the value for a single point', () => {
     const points: LatencyPoint[] = [
-      { bucket: '2026-01-01T00:00:00Z', avgLatencyMs: 42, p95LatencyMs: 50 },
+      { bucket: '2026-01-01T00:00:00Z', avg_latency_ms: 42, p95_latency_ms: 50 },
     ]
     expect(weightedAvgLatency(points)).toBe(42)
   })
 
   it('computes average of multiple points', () => {
     const points: LatencyPoint[] = [
-      { bucket: '2026-01-01T00:00:00Z', avgLatencyMs: 5, p95LatencyMs: 10 },
-      { bucket: '2026-01-01T01:00:00Z', avgLatencyMs: 15, p95LatencyMs: 20 },
+      { bucket: '2026-01-01T00:00:00Z', avg_latency_ms: 5, p95_latency_ms: 10 },
+      { bucket: '2026-01-01T01:00:00Z', avg_latency_ms: 15, p95_latency_ms: 20 },
     ]
     expect(weightedAvgLatency(points)).toBe(10)
   })

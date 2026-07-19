@@ -27,8 +27,8 @@ export interface UsagePoint {
 
 export interface LatencyPoint {
   bucket: string
-  avgLatencyMs: number
-  p95LatencyMs: number
+  avg_latency_ms: number
+  p95_latency_ms: number
 }
 
 export interface UsageFilters {

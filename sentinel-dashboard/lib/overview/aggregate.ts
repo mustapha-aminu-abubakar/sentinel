@@ -10,6 +10,6 @@ export function aggregateUsage(points: UsagePoint[]) {
 
 export function weightedAvgLatency(points: LatencyPoint[]): number {
   if (points.length === 0) return 0
-  const total = points.reduce((s, p) => s + p.avgLatencyMs, 0)
+  const total = points.reduce((s, p) => s + p.avg_latency_ms, 0)
   return total / points.length
 }
