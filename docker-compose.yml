@@ -157,11 +157,16 @@ services:
   k6:
     image: grafana/k6:latest
     profiles: ["loadtest"]
+    user: "0"
     ports:
       - "5660:5660"
+    environment:
+      K6_WEB_DASHBOARD_PORT: "5660"
+      K6_WEB_DASHBOARD_HOST: "0.0.0.0"
+      K6_WEB_DASHBOARD_EXPORT: "/scripts/report.html"
     volumes:
       - ./loadtest:/scripts
-    command: dashboard run /scripts/scenario.js
+    command: run --out=web-dashboard --out json=/scripts/results.json /scripts/scenario.js
     depends_on:
       nginx:
         condition: service_started

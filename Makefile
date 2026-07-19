@@ -14,7 +14,7 @@ run:
 	@go run cmd/api/main.go
 # Create DB container
 docker-run:
-	@if docker compose up --build --scale sentinel-api=3 2>/dev/null; then \
+	@if docker compose up --build -d --scale sentinel-api=3 2>/dev/null; then \
 		: ; \
 	else \
 		echo "Falling back to Docker Compose V1"; \
@@ -45,7 +45,8 @@ e2e-script:
 
 # k6 load test with real-time web dashboard at http://localhost:5660
 loadtest:
-	@docker compose --profile loadtest run --rm k6
+	@docker compose --profile loadtest up --abort-on-container-exit --exit-code-from k6 k6
+	@docker compose --profile loadtest rm -f k6 2>/dev/null || true
 
 # Clean the binary
 clean:
@@ -69,4 +70,4 @@ watch:
             fi; \
         fi
 
-.PHONY: all build run test clean watch docker-run docker-down itest e2e-script
+.PHONY: all build run test clean watch docker-run docker-down itest e2e-script loadtest
