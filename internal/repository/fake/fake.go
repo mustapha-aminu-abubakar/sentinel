@@ -61,7 +61,7 @@ func (r *ClientRepository) Get(ctx context.Context, id uuid.UUID) (domain.Client
 	return c, nil
 }
 
-// List returns clients with optional status filtering.
+// List returns clients with optional status filtering and pagination.
 func (r *ClientRepository) List(ctx context.Context, params repository.ListClientsParams) ([]domain.Client, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -76,7 +76,21 @@ func (r *ClientRepository) List(ctx context.Context, params repository.ListClien
 	if result == nil {
 		return []domain.Client{}, nil
 	}
-	return result, nil
+	limit, offset := len(result), 0
+	if params.Limit > 0 {
+		limit = params.Limit
+	}
+	if params.Offset > 0 {
+		offset = params.Offset
+	}
+	if offset >= len(result) {
+		return []domain.Client{}, nil
+	}
+	end := offset + limit
+	if end > len(result) {
+		end = len(result)
+	}
+	return result[offset:end], nil
 }
 
 // Update applies partial updates to an existing client.
@@ -187,7 +201,7 @@ func (r *RateRuleRepository) ListByClient(ctx context.Context, clientID uuid.UUI
 	return result, nil
 }
 
-// List returns rules with optional client/API filtering.
+// List returns rules with optional client/API filtering and pagination.
 func (r *RateRuleRepository) List(ctx context.Context, params repository.ListRulesParams) ([]domain.RateRule, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -205,7 +219,21 @@ func (r *RateRuleRepository) List(ctx context.Context, params repository.ListRul
 	if result == nil {
 		return []domain.RateRule{}, nil
 	}
-	return result, nil
+	limit, offset := len(result), 0
+	if params.Limit > 0 {
+		limit = params.Limit
+	}
+	if params.Offset > 0 {
+		offset = params.Offset
+	}
+	if offset >= len(result) {
+		return []domain.RateRule{}, nil
+	}
+	end := offset + limit
+	if end > len(result) {
+		end = len(result)
+	}
+	return result[offset:end], nil
 }
 
 // GetByClientAndAPI finds a rule matching the client-API pair.

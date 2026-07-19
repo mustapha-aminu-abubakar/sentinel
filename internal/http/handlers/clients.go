@@ -24,9 +24,12 @@ func NewClientsHandler(repo repository.ClientRepository) *ClientsHandler {
 	return &ClientsHandler{repo: repo}
 }
 
-// List handles GET /clients with optional ?status= filter.
+// List handles GET /clients with optional ?status=, ?limit=, and ?offset= filters.
 func (h *ClientsHandler) List(w http.ResponseWriter, r *http.Request) {
-	params := repository.ListClientsParams{}
+	params := repository.ListClientsParams{
+		Limit:  100,
+		Offset: 0,
+	}
 	if statusFilter := r.URL.Query().Get("status"); statusFilter != "" {
 		s := domain.ClientStatus(statusFilter)
 		if err := domain.ValidateClientStatus(s); err != nil {
@@ -34,6 +37,18 @@ func (h *ClientsHandler) List(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		params.Status = &s
+	}
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if _, err := fmt.Sscanf(limitStr, "%d", &params.Limit); err != nil {
+			httperr.WriteError(w, domain.ErrValidation)
+			return
+		}
+	}
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		if _, err := fmt.Sscanf(offsetStr, "%d", &params.Offset); err != nil {
+			httperr.WriteError(w, domain.ErrValidation)
+			return
+		}
 	}
 
 	clients, err := h.repo.List(r.Context(), params)

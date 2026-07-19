@@ -23,9 +23,12 @@ func NewRulesHandler(repo repository.RateRuleRepository) *RulesHandler {
 	return &RulesHandler{repo: repo}
 }
 
-// List handles GET /rules with optional ?client_id= and ?api= filters.
+// List handles GET /rules with optional ?client_id=, ?api=, ?limit=, and ?offset= filters.
 func (h *RulesHandler) List(w http.ResponseWriter, r *http.Request) {
-	params := repository.ListRulesParams{}
+	params := repository.ListRulesParams{
+		Limit:  100,
+		Offset: 0,
+	}
 
 	if clientIDStr := r.URL.Query().Get("client_id"); clientIDStr != "" {
 		id, err := uuid.Parse(clientIDStr)
@@ -42,6 +45,19 @@ func (h *RulesHandler) List(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		params.API = &api
+	}
+
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if _, err := fmt.Sscanf(limitStr, "%d", &params.Limit); err != nil {
+			httperr.WriteError(w, domain.ErrValidation)
+			return
+		}
+	}
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		if _, err := fmt.Sscanf(offsetStr, "%d", &params.Offset); err != nil {
+			httperr.WriteError(w, domain.ErrValidation)
+			return
+		}
 	}
 
 	rules, err := h.repo.List(r.Context(), params)
