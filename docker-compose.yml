@@ -1,57 +1,145 @@
+# Sentinel — full local stack.
+# `docker compose up --build` boots postgres, redis, kafka, sentinel-api,
+# the analytics-worker, and the dashboard. All six services share the
+# `sentinel` bridge network and resolve each other by service name.
+#
+# Service names are canonical per the shared contract:
+#   sentinel-api, analytics-worker, dashboard, postgres, redis, kafka
+#
+# Env-var contract consumed by the Go images is defined in
+# internal/config/config.go. The dashboard reads
+# NEXT_PUBLIC_SENTINEL_API_URL (see sentinel-dashboard/lib/api/sentinel.ts).
+
 services:
-  app:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel
+      POSTGRES_DB: sentinel
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel -d sentinel"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - sentinel
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - sentinel
+
+  kafka:
+    image: apache/kafka:latest
+    restart: unless-stopped
+    environment:
+      # KRaft single-node — no Zookeeper.
+      KAFKA_NODE_ID: "1"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      CLUSTER_ID: 5L6g3nShT-eMCtK--X86sw
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 20s
+    networks:
+      - sentinel
+
+  sentinel-api:
     build:
       context: .
       dockerfile: Dockerfile
-      target: prod
     restart: unless-stopped
     ports:
-      - ${PORT}:${PORT}
+      - "8080:8080"
     environment:
-      APP_ENV: ${APP_ENV}
-      PORT: ${PORT}
-      BLUEPRINT_DB_HOST: ${BLUEPRINT_DB_HOST}
-      BLUEPRINT_DB_PORT: ${BLUEPRINT_DB_PORT}
-      BLUEPRINT_DB_DATABASE: ${BLUEPRINT_DB_DATABASE}
-      BLUEPRINT_DB_USERNAME: ${BLUEPRINT_DB_USERNAME}
-      BLUEPRINT_DB_PASSWORD: ${BLUEPRINT_DB_PASSWORD}
-      BLUEPRINT_DB_SCHEMA: ${BLUEPRINT_DB_SCHEMA}
+      APP_ENV: production
+      PORT: "8080"
+      BLUEPRINT_DB_HOST: postgres
+      BLUEPRINT_DB_PORT: "5432"
+      BLUEPRINT_DB_DATABASE: sentinel
+      BLUEPRINT_DB_USERNAME: sentinel
+      BLUEPRINT_DB_PASSWORD: sentinel
+      BLUEPRINT_DB_SCHEMA: public
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      CACHED_RULE_TTL: ${CACHED_RULE_TTL}
+      KAFKA_BROKERS: kafka:9092
+      CACHED_RULE_TTL: "60"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_started
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     networks:
-      - blueprint
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
-    networks:
-      - blueprint
-  postgres:
-    image: postgres:latest
+      - sentinel
+
+  analytics-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${BLUEPRINT_DB_DATABASE}
-      POSTGRES_USER: ${BLUEPRINT_DB_USERNAME}
-      POSTGRES_PASSWORD: ${BLUEPRINT_DB_PASSWORD}
-    ports:
-      - "${BLUEPRINT_DB_PORT}:5432"
-    volumes:
-      - psql_volume_bp:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${BLUEPRINT_DB_USERNAME} -d ${BLUEPRINT_DB_DATABASE}'"]
-      interval: 5s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
+      APP_ENV: production
+      BLUEPRINT_DB_HOST: postgres
+      BLUEPRINT_DB_PORT: "5432"
+      BLUEPRINT_DB_DATABASE: sentinel
+      BLUEPRINT_DB_USERNAME: sentinel
+      BLUEPRINT_DB_PASSWORD: sentinel
+      BLUEPRINT_DB_SCHEMA: public
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      KAFKA_BROKERS: kafka:9092
+      CACHED_RULE_TTL: "60"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
     networks:
-      - blueprint
+      - sentinel
+
+  dashboard:
+    build:
+      context: ./sentinel-dashboard
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Browser-side base URL for the sentinel-api (used by client fetches).
+      NEXT_PUBLIC_SENTINEL_API_URL: http://localhost:8080
+    depends_on:
+      sentinel-api:
+        condition: service_started
+    networks:
+      - sentinel
 
 volumes:
-  psql_volume_bp:
+  pgdata:
+  kafka-data:
+
 networks:
-  blueprint:
+  sentinel:
+    driver: bridge
