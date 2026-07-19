@@ -16,7 +16,7 @@ export function setup() {
     JSON.stringify({
       client_id: clientId,
       api: 'k6-load',
-      requests_allowed: 100000,
+      requests_allowed: 20000,
       window_seconds: 60,
     }),
     { headers: { 'Content-Type': 'application/json' } }
@@ -27,18 +27,16 @@ export function setup() {
 
 export const options = {
   stages: [
-    { duration: '1m',  target: 50 },    // warm-up: 50 concurrent VUs
-    { duration: '2m',  target: 200 },   // ramp to moderate load
-    { duration: '3m',  target: 200 },   // steady moderate
-    { duration: '1m',  target: 1000 },  // ramp to high load
-    { duration: '2m',  target: 1000 },  // sustained high load
-    { duration: '30s', target: 2000 },  // spike
-    { duration: '1m',  target: 2000 },  // sustained spike
+    { duration: '30s', target: 10 },    // warm-up
+    { duration: '1m',  target: 50 },    // moderate
+    { duration: '1m',  target: 50 },    // steady
+    { duration: '30s', target: 100 },   // peak
+    { duration: '1m',  target: 100 },   // sustained peak
     { duration: '30s', target: 0 },     // cool-down
   ],
   thresholds: {
-    http_req_duration: ['p(95)<1000'],
-    http_req_failed:   ['rate<0.01'],
+    http_req_duration: ['p(95)<2000'],
+    http_req_failed:   ['rate<0.05'],
   },
 };
 

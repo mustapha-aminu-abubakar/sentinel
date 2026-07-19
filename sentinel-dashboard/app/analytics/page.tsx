@@ -6,18 +6,18 @@ import AnalyticsContent from './analytics-content'
 function AnalyticsFallback() {
   return (
     <div className="space-y-4">
-      <div className="h-9 w-48 animate-pulse rounded bg-muted" />
-      <div className="h-5 w-64 animate-pulse rounded bg-muted" />
+      <Skeleton className="h-9 w-48" />
+      <Skeleton className="h-5 w-64" />
       <div className="flex flex-wrap gap-4">
-        <div className="h-8 w-44 animate-pulse rounded bg-muted" />
-        <div className="h-8 w-36 animate-pulse rounded bg-muted" />
-        <div className="h-8 w-64 animate-pulse rounded bg-muted" />
-        <div className="h-8 w-32 animate-pulse rounded bg-muted" />
+        <Skeleton className="h-8 w-44" />
+        <Skeleton className="h-8 w-36" />
+        <Skeleton className="h-8 w-64" />
+        <Skeleton className="h-8 w-32" />
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <div className="h-5 w-32 animate-pulse rounded bg-muted" />
+            <Skeleton className="h-5 w-32" />
           </CardHeader>
           <CardContent>
             <Skeleton className="h-[300px] w-full" />
@@ -25,7 +25,7 @@ function AnalyticsFallback() {
         </Card>
         <Card>
           <CardHeader>
-            <div className="h-5 w-32 animate-pulse rounded bg-muted" />
+            <Skeleton className="h-5 w-32" />
           </CardHeader>
           <CardContent>
             <Skeleton className="h-[300px] w-full" />

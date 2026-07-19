@@ -56,6 +56,7 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       CLUSTER_ID: 5L6g3nShT-eMCtK--X86sw
     healthcheck:
       test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
@@ -63,6 +64,22 @@ services:
       timeout: 10s
       retries: 12
       start_period: 20s
+    networks:
+      - sentinel
+
+  kafka-setup:
+    image: apache/kafka:latest
+    entrypoint: ["/opt/kafka/bin/kafka-topics.sh"]
+    command:
+      - "--bootstrap-server=kafka:9092"
+      - "--create"
+      - "--if-not-exists"
+      - "--topic=sentinel.check_events"
+      - "--partitions=1"
+      - "--replication-factor=1"
+    depends_on:
+      kafka:
+        condition: service_healthy
     networks:
       - sentinel
 
@@ -92,6 +109,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-setup:
+        condition: service_completed_successfully
     networks:
       - sentinel
 
@@ -133,6 +152,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      kafka-setup:
+        condition: service_completed_successfully
     networks:
       - sentinel
 

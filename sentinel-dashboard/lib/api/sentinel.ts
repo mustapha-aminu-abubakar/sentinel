@@ -110,9 +110,9 @@ export function getUsage(filters: UsageFilters): Promise<UsagePoint[]> {
 export function getLatency(
   filters: Omit<UsageFilters, 'status'>
 ): Promise<LatencyPoint[]> {
-  return fetcher<LatencyPoint[]>(
+  return fetcher<unknown[]>(
     `/analytics/latency${qs(mapKeys(filters, camelToSnake) as Record<string, unknown>)}`
-  )
+  ).then(r => r.map(p => mapKeys<LatencyPoint>(p, snakeToCamel)))
 }
 
 export const sentinelKeys = {

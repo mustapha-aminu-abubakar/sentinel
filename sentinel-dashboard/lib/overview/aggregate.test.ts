@@ -10,8 +10,8 @@ describe('aggregateUsage', () => {
 
   it('sums allowed and rejected correctly', () => {
     const points: UsagePoint[] = [
-      { bucket: '2026-01-01T00:00:00Z', allowed: 10, rejected: 2, avgLatencyMs: 5 },
-      { bucket: '2026-01-01T01:00:00Z', allowed: 5, rejected: 1, avgLatencyMs: 8 },
+      { bucket: '2026-01-01T00:00:00Z', allowed: 10, rejected: 2 },
+      { bucket: '2026-01-01T01:00:00Z', allowed: 5, rejected: 1 },
     ]
     const result = aggregateUsage(points)
     expect(result.total).toBe(18)
@@ -22,7 +22,7 @@ describe('aggregateUsage', () => {
 
   it('returns zero successPct when total is zero', () => {
     const points: UsagePoint[] = [
-      { bucket: '2026-01-01T00:00:00Z', allowed: 0, rejected: 0, avgLatencyMs: 0 },
+      { bucket: '2026-01-01T00:00:00Z', allowed: 0, rejected: 0 },
     ]
     const result = aggregateUsage(points)
     expect(result.total).toBe(0)
@@ -31,7 +31,7 @@ describe('aggregateUsage', () => {
 
   it('handles all-rejected', () => {
     const points: UsagePoint[] = [
-      { bucket: '2026-01-01T00:00:00Z', allowed: 0, rejected: 10, avgLatencyMs: 0 },
+      { bucket: '2026-01-01T00:00:00Z', allowed: 0, rejected: 10 },
     ]
     const result = aggregateUsage(points)
     expect(result.total).toBe(10)
@@ -48,15 +48,15 @@ describe('weightedAvgLatency', () => {
 
   it('returns the value for a single point', () => {
     const points: LatencyPoint[] = [
-      { bucket: '2026-01-01T00:00:00Z', avg_latency_ms: 42, p95_latency_ms: 50 },
+      { bucket: '2026-01-01T00:00:00Z', avgLatencyMs: 42, p95LatencyMs: 50 },
     ]
     expect(weightedAvgLatency(points)).toBe(42)
   })
 
   it('computes average of multiple points', () => {
     const points: LatencyPoint[] = [
-      { bucket: '2026-01-01T00:00:00Z', avg_latency_ms: 5, p95_latency_ms: 10 },
-      { bucket: '2026-01-01T01:00:00Z', avg_latency_ms: 15, p95_latency_ms: 20 },
+      { bucket: '2026-01-01T00:00:00Z', avgLatencyMs: 5, p95LatencyMs: 10 },
+      { bucket: '2026-01-01T01:00:00Z', avgLatencyMs: 15, p95LatencyMs: 20 },
     ]
     expect(weightedAvgLatency(points)).toBe(10)
   })

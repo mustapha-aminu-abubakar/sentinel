@@ -45,8 +45,14 @@ e2e-script:
 
 # k6 load test with real-time web dashboard at http://localhost:5660
 loadtest:
-	@docker compose --profile loadtest up --abort-on-container-exit --exit-code-from k6 k6
-	@docker compose --profile loadtest rm -f k6 2>/dev/null || true
+	@docker run --rm --network sentinel_sentinel \
+	  -p 5660:5660 -u 0 \
+	  -v "$(PWD)/loadtest:/scripts" \
+	  -e K6_WEB_DASHBOARD_PORT=5660 \
+	  -e K6_WEB_DASHBOARD_HOST=0.0.0.0 \
+	  -e K6_WEB_DASHBOARD_EXPORT=/scripts/report.html \
+	  grafana/k6:latest \
+	  run --out=web-dashboard --out json=/scripts/results.json /scripts/scenario.js
 
 # Clean the binary
 clean:

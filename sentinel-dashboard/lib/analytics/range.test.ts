@@ -2,17 +2,17 @@ import { describe, it, expect } from 'vitest'
 import { rangeToWindow } from './range'
 
 describe('rangeToWindow', () => {
-  it('returns a 10-day window from a fixed date', () => {
+  it('returns a 1-day window from a fixed date', () => {
     const now = new Date('2025-01-20T00:00:00.000Z')
-    const result = rangeToWindow('10d', now)
-    expect(result.from).toBe('2025-01-10T00:00:00.000Z')
+    const result = rangeToWindow('1d', now)
+    expect(result.from).toBe('2025-01-19T00:00:00.000Z')
     expect(result.to).toBe('2025-01-20T00:00:00.000Z')
   })
 
-  it('returns a 15-day window from a fixed date', () => {
+  it('returns a 7-day window from a fixed date', () => {
     const now = new Date('2025-01-20T00:00:00.000Z')
-    const result = rangeToWindow('15d', now)
-    expect(result.from).toBe('2025-01-05T00:00:00.000Z')
+    const result = rangeToWindow('7d', now)
+    expect(result.from).toBe('2025-01-13T00:00:00.000Z')
     expect(result.to).toBe('2025-01-20T00:00:00.000Z')
   })
 
@@ -25,8 +25,8 @@ describe('rangeToWindow', () => {
 
   it('handles month boundaries correctly', () => {
     const now = new Date('2025-03-01T00:00:00.000Z')
-    const result = rangeToWindow('10d', now)
-    expect(result.from).toBe('2025-02-19T00:00:00.000Z')
+    const result = rangeToWindow('1d', now)
+    expect(result.from).toBe('2025-02-28T00:00:00.000Z')
     expect(result.to).toBe('2025-03-01T00:00:00.000Z')
   })
 

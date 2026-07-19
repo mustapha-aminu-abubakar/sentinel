@@ -3,34 +3,32 @@
 import { useCallback, useMemo } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import useSWR from 'swr'
+import { AlertCircle } from 'lucide-react'
 import { getUsage, getLatency, sentinelKeys } from '@/lib/api/sentinel'
 import type { UsageFilters } from '@/lib/api/types'
+import { ApiError } from '@/lib/api/types'
 import { rangeToWindow, type Range } from '@/lib/analytics/range'
+import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { FiltersBar, type FiltersState } from '@/components/analytics/FiltersBar'
 import { RequestVolumeChart } from '@/components/analytics/RequestVolumeChart'
 import { LatencyChart } from '@/components/analytics/LatencyChart'
+
+const RANGE_LABELS: Record<Range, string> = {
+  '1d': 'Past 24 hours',
+  '7d': 'Past 7 days',
+  '30d': 'Past 30 days',
+}
 
 function readFilters(sp: URLSearchParams): FiltersState {
   const range = sp.get('range')
   return {
     clientId: sp.get('clientId') ?? '',
     api: sp.get('api') ?? '',
-    range:
-      range === '10d' || range === '15d' || range === '30d' || range === 'custom'
-        ? range
-        : '30d',
-    from: sp.get('from') ?? '',
-    to: sp.get('to') ?? '',
+    range: range === '1d' || range === '7d' || range === '30d' ? range : '30d',
     status: sp.get('status') ?? 'all',
   }
-}
-
-/** Safely convert a date string to ISO — returns '' on invalid input. */
-function safeToISO(dateStr: string): string {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return isNaN(d.getTime()) ? '' : d.toISOString()
 }
 
 export default function AnalyticsContent() {
@@ -62,15 +60,10 @@ export default function AnalyticsContent() {
     [router, pathname, createQueryString]
   )
 
-  const timeWindow = useMemo(() => {
-    if (filters.range === 'custom') {
-      return {
-        from: safeToISO(filters.from),
-        to: safeToISO(filters.to),
-      }
-    }
-    return rangeToWindow(filters.range as Range)
-  }, [filters.range, filters.from, filters.to])
+  const timeWindow = useMemo(
+    () => rangeToWindow(filters.range),
+    [filters.range]
+  )
 
   const usageFilters: UsageFilters = useMemo(
     () => ({
@@ -91,8 +84,6 @@ export default function AnalyticsContent() {
     return rest
   }, [usageFilters])
 
-  // Use isLoading (not isValidating) so keepPreviousData can show stale data
-  // during background revalidation without triggering a skeleton flash.
   const { data: usageData, error: usageError, isLoading: usageLoading } = useSWR(
     sentinelKeys.usage(usageFilters),
     () => getUsage(usageFilters),
@@ -109,20 +100,37 @@ export default function AnalyticsContent() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-bold tracking-tight">Usage Analytics</h1>
+      <div className="flex items-baseline gap-3">
+        <h1 className="text-3xl font-bold tracking-tight">Usage Analytics</h1>
+        <Badge variant="outline" className="shrink-0">
+          {RANGE_LABELS[filters.range]}
+        </Badge>
+      </div>
       <p className="text-muted-foreground">
         Request volume and latency trends over time.
       </p>
       <FiltersBar filters={filters} onFilterChange={onFilterChange} />
       {usageError && (
-        <p className="text-sm text-destructive">
-          Failed to load usage data. Please try again.
-        </p>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Failed to load usage data</AlertTitle>
+          <AlertDescription>
+            {usageError instanceof ApiError
+              ? `${usageError.status}: ${usageError.message}`
+              : 'Network error — is the API server running?'}
+          </AlertDescription>
+        </Alert>
       )}
       {latencyError && (
-        <p className="text-sm text-destructive">
-          Failed to load latency data. Please try again.
-        </p>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Failed to load latency data</AlertTitle>
+          <AlertDescription>
+            {latencyError instanceof ApiError
+              ? `${latencyError.status}: ${latencyError.message}`
+              : 'Network error — is the API server running?'}
+          </AlertDescription>
+        </Alert>
       )}
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
@@ -134,6 +142,7 @@ export default function AnalyticsContent() {
               data={usageData ?? []}
               loading={usageLoading}
               statusFilter={statusFilter}
+              range={filters.range}
             />
           </CardContent>
         </Card>
@@ -145,6 +154,7 @@ export default function AnalyticsContent() {
             <LatencyChart
               data={latencyData ?? []}
               loading={latencyLoading}
+              range={filters.range}
             />
           </CardContent>
         </Card>

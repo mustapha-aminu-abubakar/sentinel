@@ -18,17 +18,14 @@ export interface RateRule {
 
 export interface UsagePoint {
   bucket: string
-  clientId?: string
-  api?: string
   allowed: number
   rejected: number
-  avgLatencyMs: number
 }
 
 export interface LatencyPoint {
   bucket: string
-  avg_latency_ms: number
-  p95_latency_ms: number
+  avgLatencyMs: number
+  p95LatencyMs: number
 }
 
 export interface UsageFilters {

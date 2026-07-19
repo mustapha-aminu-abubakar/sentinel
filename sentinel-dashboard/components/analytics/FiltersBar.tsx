@@ -1,7 +1,8 @@
 'use client'
 
+import { useMemo } from 'react'
 import useSWR from 'swr'
-import { listClients, sentinelKeys } from '@/lib/api/sentinel'
+import { listClients, listRules, sentinelKeys } from '@/lib/api/sentinel'
 import {
   Select,
   SelectContent,
@@ -9,16 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import type { Range } from '@/lib/analytics/range'
 
 export interface FiltersState {
   clientId: string
   api: string
-  range: Range | 'custom'
-  from: string
-  to: string
+  range: Range
   status: string
 }
 
@@ -34,36 +33,29 @@ export function FiltersBar({ filters, onFilterChange }: FiltersBarProps) {
     error: clientsError,
   } = useSWR(sentinelKeys.clients(), () => listClients())
 
-  const rangeOptions: { value: Range | 'custom'; label: string }[] = [
-    { value: '10d', label: '10d' },
-    { value: '15d', label: '15d' },
+  const rulesParams = filters.clientId ? { clientId: filters.clientId } : undefined
+  const { data: rules } = useSWR(
+    sentinelKeys.rules(rulesParams),
+    () => listRules(rulesParams)
+  )
+
+  const apiOptions = useMemo(() => {
+    if (!rules) return []
+    const apis = [...new Set(rules.map((r) => r.api))]
+    apis.sort((a, b) => a.localeCompare(b))
+    return apis
+  }, [rules])
+
+  const rangeOptions: { value: Range; label: string }[] = [
+    { value: '1d', label: '1d' },
+    { value: '7d', label: '7d' },
     { value: '30d', label: '30d' },
-    { value: 'custom', label: 'Custom' },
   ]
-
-  const isCustom = filters.range === 'custom'
-
-  function handleFromChange(value: string) {
-    // Validate that from <= to when both are set
-    if (value && filters.to && value > filters.to) return
-    onFilterChange({ from: value })
-  }
-
-  function handleToChange(value: string) {
-    // Validate that to >= from when both are set
-    if (value && filters.from && value < filters.from) return
-    onFilterChange({ to: value })
-  }
 
   return (
     <div className="flex flex-wrap items-end gap-4">
       <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="filter-client"
-          className="text-xs font-medium text-muted-foreground"
-        >
-          Client
-        </label>
+        <Label htmlFor="filter-client">Client</Label>
         <Select
           value={filters.clientId}
           onValueChange={(value) => onFilterChange({ clientId: value ?? '' })}
@@ -89,36 +81,32 @@ export function FiltersBar({ filters, onFilterChange }: FiltersBarProps) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="filter-api"
-          className="text-xs font-medium text-muted-foreground"
-        >
-          API
-        </label>
-        <Input
-          id="filter-api"
-          placeholder="All APIs"
-          className="h-8 w-36"
+        <Label htmlFor="filter-api">API</Label>
+        <Select
           value={filters.api}
-          onChange={(e) => onFilterChange({ api: e.target.value })}
-        />
+          onValueChange={(value) => onFilterChange({ api: value ?? '' })}
+        >
+          <SelectTrigger className="w-44" id="filter-api">
+            <SelectValue placeholder="All APIs" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All APIs</SelectItem>
+            {apiOptions.map((api) => (
+              <SelectItem key={api} value={api}>
+                {api}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span
-          id="filter-range-label"
-          className="text-xs font-medium text-muted-foreground"
-        >
-          Range
-        </span>
+        <Label>Range</Label>
         <Tabs
           value={filters.range}
-          aria-labelledby="filter-range-label"
           onValueChange={(value) =>
             onFilterChange({
-              range: value as Range | 'custom',
-              // Clear custom date params when switching to a preset range
-              ...(value !== 'custom' && { from: '', to: '' }),
+              range: value as Range,
             })
           }
         >
@@ -132,50 +120,8 @@ export function FiltersBar({ filters, onFilterChange }: FiltersBarProps) {
         </Tabs>
       </div>
 
-      {isCustom && (
-        <>
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="filter-from"
-              className="text-xs font-medium text-muted-foreground"
-            >
-              From
-            </label>
-            <Input
-              id="filter-from"
-              type="date"
-              className="h-8 w-40"
-              value={filters.from}
-              max={filters.to || undefined}
-              onChange={(e) => handleFromChange(e.target.value)}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor="filter-to"
-              className="text-xs font-medium text-muted-foreground"
-            >
-              To
-            </label>
-            <Input
-              id="filter-to"
-              type="date"
-              className="h-8 w-40"
-              value={filters.to}
-              min={filters.from || undefined}
-              onChange={(e) => handleToChange(e.target.value)}
-            />
-          </div>
-        </>
-      )}
-
       <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="filter-status"
-          className="text-xs font-medium text-muted-foreground"
-        >
-          Status
-        </label>
+        <Label htmlFor="filter-status">Status</Label>
         <Select
           value={filters.status}
           onValueChange={(value) => onFilterChange({ status: value ?? 'all' })}

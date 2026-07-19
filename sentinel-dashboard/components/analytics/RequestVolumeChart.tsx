@@ -12,23 +12,21 @@ import {
 } from 'recharts'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { UsagePoint } from '@/lib/api/types'
+import type { Range } from '@/lib/analytics/range'
+import { formatBucket, tickCount } from '@/lib/analytics/formatBucket'
 
 interface RequestVolumeChartProps {
   data: UsagePoint[]
   loading: boolean
   statusFilter?: 'allowed' | 'rejected'
-}
-
-function formatBucket(bucket: string): string {
-  const d = new Date(bucket)
-  if (isNaN(d.getTime())) return bucket
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  range?: Range
 }
 
 export function RequestVolumeChart({
   data,
   loading,
   statusFilter,
+  range,
 }: RequestVolumeChartProps) {
   if (loading) {
     return <Skeleton className="h-[300px] w-full" />
@@ -51,15 +49,16 @@ export function RequestVolumeChart({
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
         <XAxis
           dataKey="bucket"
-          tickFormatter={(v) => formatBucket(String(v))}
+          tickFormatter={(v) => formatBucket(String(v), range)}
+          tickCount={tickCount(range)}
+          domain={['dataMin', 'dataMax']}
           className="text-xs text-muted-foreground"
           tickLine={false}
           axisLine={false}
         />
         <YAxis className="text-xs text-muted-foreground" tickLine={false} axisLine={false} />
         <Tooltip
-          labelFormatter={(label) => formatBucket(String(label))}
-          // Capitalize the series name in the tooltip
+          labelFormatter={(label) => formatBucket(String(label), range)}
           formatter={(value, name) => [
             Number(value).toLocaleString(),
             typeof name === 'string'

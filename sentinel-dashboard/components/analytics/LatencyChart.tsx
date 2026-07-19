@@ -12,19 +12,16 @@ import {
 } from 'recharts'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { LatencyPoint } from '@/lib/api/types'
+import type { Range } from '@/lib/analytics/range'
+import { formatBucket, tickCount } from '@/lib/analytics/formatBucket'
 
 interface LatencyChartProps {
   data: LatencyPoint[]
   loading: boolean
+  range?: Range
 }
 
-function formatBucket(bucket: string): string {
-  const d = new Date(bucket)
-  if (isNaN(d.getTime())) return bucket
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-}
-
-export function LatencyChart({ data, loading }: LatencyChartProps) {
+export function LatencyChart({ data, loading, range }: LatencyChartProps) {
   if (loading) {
     return <Skeleton className="h-[300px] w-full" />
   }
@@ -43,7 +40,9 @@ export function LatencyChart({ data, loading }: LatencyChartProps) {
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
         <XAxis
           dataKey="bucket"
-          tickFormatter={(v) => formatBucket(String(v))}
+          tickFormatter={(v) => formatBucket(String(v), range)}
+          tickCount={tickCount(range)}
+          domain={['dataMin', 'dataMax']}
           className="text-xs text-muted-foreground"
           tickLine={false}
           axisLine={false}
@@ -55,7 +54,7 @@ export function LatencyChart({ data, loading }: LatencyChartProps) {
           unit="ms"
         />
         <Tooltip
-          labelFormatter={(label) => formatBucket(String(label))}
+          labelFormatter={(label) => formatBucket(String(label), range)}
           // Return [formattedValue, seriesName] tuple so Recharts renders both
           formatter={(value, name) => [`${Number(value).toFixed(1)} ms`, name]}
           contentStyle={{
@@ -66,14 +65,14 @@ export function LatencyChart({ data, loading }: LatencyChartProps) {
         />
         <Legend />
         <Line
-          dataKey="avg_latency_ms"
+          dataKey="avgLatencyMs"
           name="Avg Latency"
           stroke="var(--chart-1)"
           strokeWidth={2}
           dot={false}
         />
         <Line
-          dataKey="p95_latency_ms"
+          dataKey="p95LatencyMs"
           name="P95 Latency"
           stroke="var(--chart-3)"
           strokeWidth={2}

@@ -1,8 +1,16 @@
 "use client"
 
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import useSWR from 'swr'
-import { PlusIcon, PencilIcon, BanIcon } from 'lucide-react'
+import {
+  PlusIcon,
+  PencilIcon,
+  BanIcon,
+  AlertCircle,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from 'lucide-react'
 
 import {
   Table,
@@ -15,6 +23,8 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import {
   listClients,
   listRules,
@@ -26,6 +36,41 @@ import { ApiError } from '@/lib/api/types'
 import RuleFormDialog from '@/components/limits/RuleFormDialog'
 import ClientFormDialog from '@/components/limits/ClientFormDialog'
 import ConfirmDisableDialog from '@/components/limits/ConfirmDisableDialog'
+
+type SortKey = 'client' | 'status' | 'api' | 'requests' | 'window'
+type SortDir = 'asc' | 'desc'
+
+function SortIcon({ active, dir }: { active: boolean; dir?: SortDir }) {
+  if (!active) return <ArrowUpDown className="h-3 w-3 text-muted-foreground" />
+  return dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+}
+
+function SortableHead({
+  label,
+  sortKey,
+  currentSort,
+  onToggle,
+}: {
+  label: string
+  sortKey: SortKey
+  currentSort: { key: SortKey; dir: SortDir } | null
+  onToggle: (key: SortKey) => void
+}) {
+  const active = currentSort?.key === sortKey
+  return (
+    <TableHead className="cursor-pointer select-none" onClick={() => onToggle(sortKey)}>
+      <div className="flex items-center gap-1">
+        {label}
+        <SortIcon active={active} dir={currentSort?.dir} />
+      </div>
+    </TableHead>
+  )
+}
+
+interface FlatRow {
+  client: Client
+  rule: RateRule | null
+}
 
 export default function LimitsPage() {
   const {
@@ -42,9 +87,7 @@ export default function LimitsPage() {
     mutate: mutateRules,
   } = useSWR(sentinelKeys.rules(), listRules)
 
-  const [ruleDialogMode, setRuleDialogMode] = useState<'create' | 'edit'>(
-    'create'
-  )
+  const [ruleDialogMode, setRuleDialogMode] = useState<'create' | 'edit'>('create')
   const [editingRule, setEditingRule] = useState<RateRule | undefined>()
   const [ruleDialogOpen, setRuleDialogOpen] = useState(false)
 
@@ -52,6 +95,16 @@ export default function LimitsPage() {
 
   const [disablingClient, setDisablingClient] = useState<Client | undefined>()
   const [disableDialogOpen, setDisableDialogOpen] = useState(false)
+
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir } | null>(null)
+
+  const toggleSort = useCallback((key: SortKey) => {
+    setSort((prev) => {
+      if (!prev || prev.key !== key) return { key, dir: 'asc' }
+      if (prev.dir === 'asc') return { key, dir: 'desc' }
+      return null
+    })
+  }, [])
 
   function openCreateRule() {
     setRuleDialogMode('create')
@@ -73,17 +126,70 @@ export default function LimitsPage() {
   const isLoading = clientsLoading || rulesLoading
   const error = clientsError || rulesError
 
+  const rulesByClientId = useMemo(() => {
+    const map: Record<string, RateRule[]> = {}
+    for (const rule of rules ?? []) {
+      if (!map[rule.clientId]) map[rule.clientId] = []
+      map[rule.clientId].push(rule)
+    }
+    return map
+  }, [rules])
+
+  const clientsList = useMemo(() => clients ?? [], [clients])
+
+  const flatRows: FlatRow[] = useMemo(() => {
+    const rows: FlatRow[] = []
+    for (const client of clientsList) {
+      const clientRules = rulesByClientId[client.id] ?? []
+      if (clientRules.length === 0) {
+        rows.push({ client, rule: null })
+      } else {
+        for (const rule of clientRules) {
+          rows.push({ client, rule })
+        }
+      }
+    }
+    return rows
+  }, [clientsList, rulesByClientId])
+
+  const sortedRows: FlatRow[] = useMemo(() => {
+    if (!sort) return flatRows
+    return [...flatRows].sort((a, b) => {
+      const dir = sort.dir === 'asc' ? 1 : -1
+      switch (sort.key) {
+        case 'client':
+          return dir * a.client.name.localeCompare(b.client.name)
+        case 'status':
+          return dir * a.client.status.localeCompare(b.client.status)
+        case 'api': {
+          const apiA = a.rule?.api ?? ''
+          const apiB = b.rule?.api ?? ''
+          return dir * apiA.localeCompare(apiB)
+        }
+        case 'requests':
+          return dir * ((a.rule?.requestsAllowed ?? 0) - (b.rule?.requestsAllowed ?? 0))
+        case 'window':
+          return dir * ((a.rule?.windowSeconds ?? 0) - (b.rule?.windowSeconds ?? 0))
+      }
+    })
+  }, [flatRows, sort])
+
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Limit Management
-        </h1>
-        <div className="space-y-2">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full" />
-          ))}
-        </div>
+        <h1 className="text-3xl font-bold tracking-tight">Limit Management</h1>
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <Skeleton className="h-5 w-32" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -91,42 +197,30 @@ export default function LimitsPage() {
   if (error) {
     return (
       <div className="space-y-4">
-        <h1 className="text-3xl font-bold tracking-tight">
-          Limit Management
-        </h1>
-        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
-          Failed to load data:{' '}
-          {error instanceof ApiError
-            ? `${error.status}: ${error.message}`
-            : 'An unexpected error occurred'}
-        </div>
+        <h1 className="text-3xl font-bold tracking-tight">Limit Management</h1>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Failed to load data</AlertTitle>
+          <AlertDescription>
+            {error instanceof ApiError
+              ? `${error.status}: ${error.message}`
+              : 'Network error — is the API server running?'}
+          </AlertDescription>
+        </Alert>
       </div>
     )
   }
-
-  const rulesByClientId: Record<string, RateRule[]> = {}
-  for (const rule of rules ?? []) {
-    if (!rulesByClientId[rule.clientId]) {
-      rulesByClientId[rule.clientId] = []
-    }
-    rulesByClientId[rule.clientId].push(rule)
-  }
-
-  const clientsList = clients ?? []
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Limit Management
-          </h1>
+          <h1 className="text-3xl font-bold tracking-tight">Limit Management</h1>
           <p className="text-muted-foreground">
             Create, update, and manage rate limits for clients.
           </p>
         </div>
         <div className="flex gap-2">
-          {/* New Client is always available — not gated on empty list */}
           <Button onClick={() => setClientDialogOpen(true)} variant="outline">
             <PlusIcon />
             New Client
@@ -141,11 +235,11 @@ export default function LimitsPage() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Client</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>API</TableHead>
-            <TableHead>Requests</TableHead>
-            <TableHead>Window</TableHead>
+            <SortableHead label="Client" sortKey="client" currentSort={sort} onToggle={toggleSort} />
+            <SortableHead label="Status" sortKey="status" currentSort={sort} onToggle={toggleSort} />
+            <SortableHead label="API" sortKey="api" currentSort={sort} onToggle={toggleSort} />
+            <SortableHead label="Requests" sortKey="requests" currentSort={sort} onToggle={toggleSort} />
+            <SortableHead label="Window" sortKey="window" currentSort={sort} onToggle={toggleSort} />
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -167,110 +261,60 @@ export default function LimitsPage() {
               </TableCell>
             </TableRow>
           ) : (
-            clientsList.map((client) => {
-              const clientRules = rulesByClientId[client.id] ?? []
-              return clientRules.length > 0
-                ? clientRules.map((rule, idx) => (
-                    <TableRow key={rule.id}>
-                      {idx === 0 && (
-                        <TableCell
-                          rowSpan={clientRules.length}
-                          className="font-medium"
-                        >
-                          {client.name}
-                        </TableCell>
-                      )}
-                      {idx === 0 && (
-                        <TableCell
-                          rowSpan={clientRules.length}
-                        >
-                          <Badge
-                            variant={
-                              client.status === 'active'
-                                ? 'default'
-                                : 'secondary'
-                            }
-                          >
-                            {client.status}
-                          </Badge>
-                        </TableCell>
-                      )}
+            sortedRows.map((row) => {
+              const { client, rule } = row
+              return (
+                <TableRow key={rule?.id ?? client.id}>
+                  <TableCell className="font-medium">{client.name}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        client.status === 'active' ? 'default' : 'secondary'
+                      }
+                    >
+                      {client.status}
+                    </Badge>
+                  </TableCell>
+                  {rule ? (
+                    <>
                       <TableCell className="font-mono text-xs">
                         {rule.api}
                       </TableCell>
-                      <TableCell>
-                        {rule.requestsAllowed.toLocaleString()}
-                      </TableCell>
+                      <TableCell>{rule.requestsAllowed.toLocaleString()}</TableCell>
                       <TableCell>{rule.windowSeconds}s</TableCell>
-                      {idx === 0 && (
-                        <TableCell
-                          rowSpan={clientRules.length}
-                          className="text-right"
-                        >
-                          <div className="flex justify-end gap-1">
-                            {clientRules.map((r) => (
-                              <Button
-                                key={r.id}
-                                type="button"
-                                variant="ghost"
-                                size="icon-sm"
-                                onClick={() => openEditRule(r)}
-                                aria-label={`Edit rule for ${r.api}`}
-                              >
-                                <PencilIcon aria-hidden />
-                              </Button>
-                            ))}
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
-                              disabled={client.status === 'inactive'}
-                              onClick={() => openDisableClient(client)}
-                              aria-label={`Disable client ${client.name}`}
-                            >
-                              <BanIcon aria-hidden />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                : [
-                    <TableRow key={client.id}>
-                      <TableCell className="font-medium">
-                        {client.name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            client.status === 'active'
-                              ? 'default'
-                              : 'secondary'
-                          }
-                        >
-                          {client.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell
-                        colSpan={3}
-                        className="text-muted-foreground"
-                      >
-                        No rules configured
-                      </TableCell>
-                      <TableCell className="text-right">
+                    </>
+                  ) : (
+                    <TableCell colSpan={3} className="text-muted-foreground">
+                      No rules configured
+                    </TableCell>
+                  )}
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-1">
+                      {rule && (
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon-sm"
-                          disabled={client.status === 'inactive'}
-                          onClick={() => openDisableClient(client)}
-                          aria-label={`Disable client ${client.name}`}
+                          onClick={() => openEditRule(rule)}
+                          aria-label={`Edit rule for ${rule.api}`}
                         >
-                          <BanIcon aria-hidden />
+                          <PencilIcon aria-hidden />
                         </Button>
-                      </TableCell>
-                    </TableRow>,
-                  ]
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        disabled={client.status === 'inactive'}
+                        onClick={() => openDisableClient(client)}
+                        aria-label={`Disable client ${client.name}`}
+                      >
+                        <BanIcon aria-hidden />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
             })
           )}
         </TableBody>
@@ -291,7 +335,6 @@ export default function LimitsPage() {
         onSuccess={() => mutateClients()}
       />
 
-      {/* Pass disablingClient directly — ConfirmDisableDialog handles undefined safely */}
       <ConfirmDisableDialog
         client={disablingClient}
         open={disableDialogOpen}

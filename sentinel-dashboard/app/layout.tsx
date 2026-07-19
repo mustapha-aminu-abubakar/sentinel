@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SWRConfig } from "swr";
 import AppShell from "@/components/shell/AppShell";
 import "./globals.css";
 
@@ -29,7 +30,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
       <body>
-        <AppShell>{children}</AppShell>
+        <SWRConfig value={{ errorRetryCount: 3 }}>
+          <AppShell>{children}</AppShell>
+        </SWRConfig>
       </body>
     </html>
   );
