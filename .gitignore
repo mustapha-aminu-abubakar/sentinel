@@ -26,3 +26,4 @@ main
 tmp/
 # vendor/
 .vscode
+loadtest/report.html
