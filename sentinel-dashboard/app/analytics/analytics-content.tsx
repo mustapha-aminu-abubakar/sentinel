@@ -86,7 +86,8 @@ export default function AnalyticsContent() {
   )
 
   const latencyFilters = useMemo(() => {
-    const { status: _, ...rest } = usageFilters
+    const { status, ...rest } = usageFilters
+    void status
     return rest
   }, [usageFilters])
 

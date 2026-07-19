@@ -124,6 +124,8 @@ services:
     build:
       context: ./sentinel-dashboard
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_SENTINEL_API_URL: http://localhost:8080
     restart: unless-stopped
     ports:
       - "3000:3000"
