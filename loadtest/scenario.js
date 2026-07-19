@@ -16,7 +16,7 @@ export function setup() {
     JSON.stringify({
       client_id: clientId,
       api: 'k6-load',
-      requests_allowed: 20000,
+      requests_allowed: 15000,
       window_seconds: 60,
     }),
     { headers: { 'Content-Type': 'application/json' } }

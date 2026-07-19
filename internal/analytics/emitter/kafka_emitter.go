@@ -47,7 +47,6 @@ type KafkaEmitter struct {
 func NewKafkaEmitter(brokers []string, topic string, channelSize, workerCount int) *KafkaEmitter {
 	w := &kafka.Writer{
 		Addr:     kafka.TCP(brokers...),
-		Topic:    topic,
 		Balancer: &kafka.LeastBytes{},
 		Async:    true,
 	}
