@@ -1,3 +1,4 @@
+// Package worker implements the Kafka-consuming analytics worker that writes check events to Postgres.
 package worker
 
 import (
@@ -31,12 +32,14 @@ func init() {
 	prometheus.MustRegister(pgUnavailable, eventsConsumed, eventsWritten)
 }
 
+// Consumer reads check events from Kafka and writes them to Postgres.
 type Consumer struct {
 	reader *kafka.Reader
 	pool   *pgxpool.Pool
 	logger *slog.Logger
 }
 
+// NewConsumer creates a Kafka consumer that writes analytics events to the given pool.
 func NewConsumer(brokers []string, pool *pgxpool.Pool) *Consumer {
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:     brokers,
@@ -54,6 +57,7 @@ func NewConsumer(brokers []string, pool *pgxpool.Pool) *Consumer {
 	}
 }
 
+// Run starts the consumer loop, fetching, decoding, writing, and committing messages.
 func (c *Consumer) Run(ctx context.Context) error {
 	c.logger.Info("starting consumer loop",
 		"topic", event.TopicCheckEvents,
@@ -98,6 +102,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 	}
 }
 
+// Close shuts down the underlying Kafka reader.
 func (c *Consumer) Close() error {
 	return c.reader.Close()
 }

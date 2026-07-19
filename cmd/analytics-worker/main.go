@@ -16,6 +16,7 @@ import (
 	"sentinel/internal/database"
 )
 
+// main starts the analytics worker: runs migrations, connects to Postgres and Kafka, and consumes events.
 func main() {
 	cfg := config.Load()
 

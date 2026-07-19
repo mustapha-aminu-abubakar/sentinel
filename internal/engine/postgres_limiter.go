@@ -10,14 +10,17 @@ import (
 	"sentinel/internal/limiter"
 )
 
+// PostgresLimiterImpl implements PostgresLimiter by counting successful requests in usage_logs.
 type PostgresLimiterImpl struct {
 	pool *pgxpool.Pool
 }
 
+// NewPostgresLimiter creates a fallback limiter that queries Postgres usage_logs directly.
 func NewPostgresLimiter(pool *pgxpool.Pool) *PostgresLimiterImpl {
 	return &PostgresLimiterImpl{pool: pool}
 }
 
+// Check evaluates a rate-limit decision by querying the usage_logs table for the sliding window count.
 func (p *PostgresLimiterImpl) Check(ctx context.Context, clientID, api string, rule limiter.Rule) (limiter.Decision, error) {
 	var count int
 	err := p.pool.QueryRow(ctx, `

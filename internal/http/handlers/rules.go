@@ -13,14 +13,17 @@ import (
 	"sentinel/internal/repository"
 )
 
+// RulesHandler serves rate-rule CRUD endpoints backed by a repository.RateRuleRepository.
 type RulesHandler struct {
 	repo repository.RateRuleRepository
 }
 
+// NewRulesHandler creates a RulesHandler with the given repository.
 func NewRulesHandler(repo repository.RateRuleRepository) *RulesHandler {
 	return &RulesHandler{repo: repo}
 }
 
+// List handles GET /rules with optional ?client_id= and ?api= filters.
 func (h *RulesHandler) List(w http.ResponseWriter, r *http.Request) {
 	params := repository.ListRulesParams{}
 
@@ -56,6 +59,7 @@ func (h *RulesHandler) List(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any{"rules": resp})
 }
 
+// Create handles POST /rules — validates input, stores rule, returns 201.
 func (h *RulesHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req dto.CreateRuleRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -80,6 +84,7 @@ func (h *RulesHandler) Create(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(dto.RuleToResponse(created))
 }
 
+// Get handles GET /rules/{id}.
 func (h *RulesHandler) Get(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)
@@ -98,6 +103,7 @@ func (h *RulesHandler) Get(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(dto.RuleToResponse(rule))
 }
 
+// Update handles PATCH /rules/{id} with optional requests_allowed/window_seconds fields.
 func (h *RulesHandler) Update(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)

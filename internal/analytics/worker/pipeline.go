@@ -13,6 +13,7 @@ import (
 	"sentinel/internal/analytics/store"
 )
 
+// Write inserts a check event into Postgres with exponential backoff retries for transient errors.
 func Write(ctx context.Context, pool *pgxpool.Pool, evt event.CheckEvent) error {
 	clientID, err := uuid.Parse(evt.ClientID)
 	if err != nil {
@@ -59,6 +60,7 @@ func Write(ctx context.Context, pool *pgxpool.Pool, evt event.CheckEvent) error 
 	}
 }
 
+// isRetryable returns true for connection-level errors that may succeed on retry.
 func isRetryable(err error) bool {
 	msg := err.Error()
 	return strings.Contains(msg, "connection") ||

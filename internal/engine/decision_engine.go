@@ -8,15 +8,21 @@ import (
 	"sentinel/internal/limiter"
 )
 
+// DegradedState represents the operational mode of the decision engine.
 type DegradedState int
 
 const (
+	// Normal indicates full Redis + rule resolution capability.
 	Normal DegradedState = iota
+	// NoRule indicates the client-API pair has no configured rule; requests are allowed.
 	NoRule
+	// RedisDown indicates Redis is unavailable and the Postgres fallback was used.
 	RedisDown
+	// FailOpen indicates both Redis and Postgres failed; all requests are allowed.
 	FailOpen
 )
 
+// String returns a human-readable label for the degraded state.
 func (s DegradedState) String() string {
 	switch s {
 	case Normal:
@@ -32,12 +38,14 @@ func (s DegradedState) String() string {
 	}
 }
 
+// DecisionEngine orchestrates rate-limit checks with graceful degradation through RedisDown -> FailOpen.
 type DecisionEngine struct {
 	limiter        Limiter
 	resolver       RuleResolver
 	postgresLim    PostgresLimiter
 }
 
+// New creates a DecisionEngine with the given primary limiter, rule resolver, and Postgres fallback.
 func New(lim Limiter, resolver RuleResolver, postgresLim PostgresLimiter) *DecisionEngine {
 	return &DecisionEngine{
 		limiter:     lim,
@@ -46,6 +54,7 @@ func New(lim Limiter, resolver RuleResolver, postgresLim PostgresLimiter) *Decis
 	}
 }
 
+// Decide evaluates a rate-limit decision, degrading gracefully through Redis fallback and fail-open.
 func (e *DecisionEngine) Decide(ctx context.Context, clientID, api string) (limiter.Decision, DegradedState, error) {
 	rule, err := e.resolver.Resolve(ctx, clientID, api)
 	if err != nil {

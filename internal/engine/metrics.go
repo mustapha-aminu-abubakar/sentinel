@@ -2,6 +2,7 @@ package engine
 
 import "github.com/prometheus/client_golang/prometheus"
 
+// degradedDecisions tracks rate-limit decisions made outside the Normal state.
 var degradedDecisions = prometheus.NewCounterVec(
 	prometheus.CounterOpts{
 		Name: "sentinel_degraded_decisions_total",
@@ -14,6 +15,7 @@ func init() {
 	prometheus.MustRegister(degradedDecisions)
 }
 
+// incDegraded increments the degraded-decisions counter for non-Normal states.
 func incDegraded(state DegradedState) {
 	if state == Normal {
 		return

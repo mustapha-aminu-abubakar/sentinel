@@ -21,6 +21,7 @@ import (
 	"sentinel/internal/repository/postgres"
 )
 
+// gracefulShutdown waits for SIGINT/SIGTERM and shuts down the HTTP server with a 5-second timeout.
 func gracefulShutdown(apiServer *http.Server, done chan bool) {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
@@ -40,6 +41,7 @@ func gracefulShutdown(apiServer *http.Server, done chan bool) {
 	done <- true
 }
 
+// main is the API server entrypoint: loads config, runs migrations, wires dependencies, and serves HTTP.
 func main() {
 	cfg := config.Load()
 

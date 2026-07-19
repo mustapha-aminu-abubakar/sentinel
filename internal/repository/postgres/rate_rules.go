@@ -14,11 +14,13 @@ import (
 	"sentinel/internal/repository/db"
 )
 
+// RateRuleRepository implements repository.RateRuleRepository using sqlc-generated queries on pgxpool.
 type RateRuleRepository struct {
 	pool *pgxpool.Pool
 	q    *db.Queries
 }
 
+// NewRateRuleRepository creates a new Postgres-backed RateRuleRepository.
 func NewRateRuleRepository(pool *pgxpool.Pool) *RateRuleRepository {
 	return &RateRuleRepository{
 		pool: pool,
@@ -26,6 +28,7 @@ func NewRateRuleRepository(pool *pgxpool.Pool) *RateRuleRepository {
 	}
 }
 
+// Create inserts a new rate rule after validation.
 func (r *RateRuleRepository) Create(ctx context.Context, rule domain.RateRule) (domain.RateRule, error) {
 	if err := domain.ValidateRateRule(rule); err != nil {
 		return domain.RateRule{}, err
@@ -45,6 +48,7 @@ func (r *RateRuleRepository) Create(ctx context.Context, rule domain.RateRule) (
 	return toDomainRateRule(created), nil
 }
 
+// Get retrieves a rate rule by ID.
 func (r *RateRuleRepository) Get(ctx context.Context, id uuid.UUID) (domain.RateRule, error) {
 	rule, err := r.q.GetRateRule(ctx, id)
 	if err != nil {
@@ -53,6 +57,7 @@ func (r *RateRuleRepository) Get(ctx context.Context, id uuid.UUID) (domain.Rate
 	return toDomainRateRule(rule), nil
 }
 
+// ListByClient returns all rules for the given client.
 func (r *RateRuleRepository) ListByClient(ctx context.Context, clientID uuid.UUID) ([]domain.RateRule, error) {
 	rows, err := r.q.ListRateRulesByClient(ctx, pgtype.UUID{Bytes: [16]byte(clientID), Valid: true})
 	if err != nil {
@@ -66,6 +71,7 @@ func (r *RateRuleRepository) ListByClient(ctx context.Context, clientID uuid.UUI
 	return result, nil
 }
 
+// List returns rules filtered by optional client/API with pagination.
 func (r *RateRuleRepository) List(ctx context.Context, params repository.ListRulesParams) ([]domain.RateRule, error) {
 	if params.Limit < 0 || int64(params.Limit) > math.MaxInt32 {
 		return nil, fmt.Errorf("%w: limit out of range", domain.ErrValidation)
@@ -101,6 +107,7 @@ func (r *RateRuleRepository) List(ctx context.Context, params repository.ListRul
 	return result, nil
 }
 
+// GetByClientAndAPI returns the rule for a specific client-API pair.
 func (r *RateRuleRepository) GetByClientAndAPI(ctx context.Context, clientID uuid.UUID, api string) (domain.RateRule, error) {
 	rule, err := r.q.GetRateRuleByClientAndAPI(ctx, db.GetRateRuleByClientAndAPIParams{
 		ClientID: pgtype.UUID{Bytes: [16]byte(clientID), Valid: true},
@@ -112,6 +119,7 @@ func (r *RateRuleRepository) GetByClientAndAPI(ctx context.Context, clientID uui
 	return toDomainRateRule(rule), nil
 }
 
+// Update applies partial updates to a rate rule using a read-modify-write transaction.
 func (r *RateRuleRepository) Update(ctx context.Context, id uuid.UUID, params repository.RateRuleUpdate) (domain.RateRule, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {

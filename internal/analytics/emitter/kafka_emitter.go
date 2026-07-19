@@ -27,11 +27,13 @@ func init() {
 	prometheus.MustRegister(emitterDropped, emitterWriteErrors)
 }
 
+// kafkaWriter abstracts the Kafka writer for testability.
 type kafkaWriter interface {
 	WriteMessages(ctx context.Context, msgs ...kafka.Message) error
 	Close() error
 }
 
+// KafkaEmitter emits check events to a Kafka topic with buffered, async writes.
 type KafkaEmitter struct {
 	ch        chan event.CheckEvent
 	writer    kafkaWriter
@@ -41,6 +43,7 @@ type KafkaEmitter struct {
 	cancel    context.CancelFunc
 }
 
+// NewKafkaEmitter creates a KafkaEmitter connecting to the given brokers and topic.
 func NewKafkaEmitter(brokers []string, topic string, channelSize, workerCount int) *KafkaEmitter {
 	w := &kafka.Writer{
 		Addr:     kafka.TCP(brokers...),
@@ -51,6 +54,7 @@ func NewKafkaEmitter(brokers []string, topic string, channelSize, workerCount in
 	return NewKafkaEmitterWithWriter(w, topic, channelSize, workerCount)
 }
 
+// NewKafkaEmitterWithWriter creates a KafkaEmitter with a caller-provided writer (useful for tests).
 func NewKafkaEmitterWithWriter(w kafkaWriter, topic string, channelSize, workerCount int) *KafkaEmitter {
 	if channelSize <= 0 {
 		channelSize = 10000
@@ -75,6 +79,7 @@ func NewKafkaEmitterWithWriter(w kafkaWriter, topic string, channelSize, workerC
 	return e
 }
 
+// Emit queues a check event; drops if the channel is full.
 func (e *KafkaEmitter) Emit(evt event.CheckEvent) {
 	select {
 	case e.ch <- evt:
@@ -83,6 +88,7 @@ func (e *KafkaEmitter) Emit(evt event.CheckEvent) {
 	}
 }
 
+// Close drains the channel and shuts down worker goroutines with a 5-second timeout.
 func (e *KafkaEmitter) Close() {
 	e.closeOnce.Do(func() {
 		close(e.ch)
@@ -106,6 +112,7 @@ func (e *KafkaEmitter) Close() {
 	})
 }
 
+// worker serialises events from the channel and writes them to Kafka.
 func (e *KafkaEmitter) worker(ctx context.Context) {
 	defer e.workers.Done()
 

@@ -12,22 +12,28 @@ import (
 	"sentinel/internal/limiter"
 )
 
+// ErrRuleNotFound is returned when no matching rate rule exists.
 var ErrRuleNotFound = errors.New("cache: rule not found")
 
+// RuleStore is the contract for fetching rate-limit rules from persistent storage.
 type RuleStore interface {
+	// GetRule retrieves the rate-limit rule for a given client and API.
 	GetRule(ctx context.Context, clientID string, api string) (limiter.Rule, error)
 }
 
+// RuleResolver implements a cache-aside pattern: Redis lookup with TTL, falling back to RuleStore on miss.
 type RuleResolver struct {
 	rdb   redis.Cmdable
 	store RuleStore
 	ttl   time.Duration
 }
 
+// NewRuleResolver creates a cache-aside resolver backed by Redis and a persistent RuleStore.
 func NewRuleResolver(rdb redis.Cmdable, store RuleStore, ttl time.Duration) *RuleResolver {
 	return &RuleResolver{rdb: rdb, store: store, ttl: ttl}
 }
 
+// Resolve retrieves the rate-limit rule for a client-API pair, caching misses in Redis.
 func (r *RuleResolver) Resolve(ctx context.Context, clientID, api string) (limiter.Rule, error) {
 	key := fmt.Sprintf("cfg:rule:%s:%s", clientID, api)
 

@@ -1,3 +1,4 @@
+// Package cache provides a Redis-backed cache for rate-limit rules with a Postgres fallback store.
 package cache
 
 import (
@@ -11,14 +12,17 @@ import (
 	"sentinel/internal/limiter"
 )
 
+// PostgresRuleStore implements a RuleStore that reads rate-limit rules directly from Postgres.
 type PostgresRuleStore struct {
 	pool *pgxpool.Pool
 }
 
+// NewPostgresRuleStore creates a store that queries rules from Postgres via the given pool.
 func NewPostgresRuleStore(pool *pgxpool.Pool) *PostgresRuleStore {
 	return &PostgresRuleStore{pool: pool}
 }
 
+// GetRule retrieves the active rate-limit rule for a client-API pair from Postgres.
 func (s *PostgresRuleStore) GetRule(ctx context.Context, clientID, api string) (limiter.Rule, error) {
 	query := `
 		SELECT r.requests_allowed, r.window_seconds

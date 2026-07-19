@@ -14,11 +14,13 @@ import (
 	"sentinel/internal/repository/db"
 )
 
+// ClientRepository implements repository.ClientRepository using sqlc-generated queries on pgxpool.
 type ClientRepository struct {
 	pool *pgxpool.Pool
 	q    *db.Queries
 }
 
+// NewClientRepository creates a new Postgres-backed ClientRepository.
 func NewClientRepository(pool *pgxpool.Pool) *ClientRepository {
 	return &ClientRepository{
 		pool: pool,
@@ -26,6 +28,7 @@ func NewClientRepository(pool *pgxpool.Pool) *ClientRepository {
 	}
 }
 
+// Create inserts a new client after validation and returns the result.
 func (r *ClientRepository) Create(ctx context.Context, client domain.Client) (domain.Client, error) {
 	if err := domain.ValidateClientName(client.Name); err != nil {
 		return domain.Client{}, err
@@ -46,6 +49,7 @@ func (r *ClientRepository) Create(ctx context.Context, client domain.Client) (do
 	return toDomainClient(now), nil
 }
 
+// Get retrieves a client by ID.
 func (r *ClientRepository) Get(ctx context.Context, id uuid.UUID) (domain.Client, error) {
 	c, err := r.q.GetClient(ctx, id)
 	if err != nil {
@@ -54,6 +58,7 @@ func (r *ClientRepository) Get(ctx context.Context, id uuid.UUID) (domain.Client
 	return toDomainClient(c), nil
 }
 
+// List returns clients filtered by optional status with pagination.
 func (r *ClientRepository) List(ctx context.Context, params repository.ListClientsParams) ([]domain.Client, error) {
 	if params.Limit < 0 || int64(params.Limit) > math.MaxInt32 {
 		return nil, fmt.Errorf("%w: limit out of range", domain.ErrValidation)
@@ -83,6 +88,7 @@ func (r *ClientRepository) List(ctx context.Context, params repository.ListClien
 	return result, nil
 }
 
+// Update applies partial updates to a client using a read-modify-write transaction.
 func (r *ClientRepository) Update(ctx context.Context, id uuid.UUID, params repository.ClientUpdate) (domain.Client, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -134,6 +140,7 @@ func (r *ClientRepository) Update(ctx context.Context, id uuid.UUID, params repo
 	return toDomainClient(updated), nil
 }
 
+// Deactivate sets a client's status to inactive.
 func (r *ClientRepository) Deactivate(ctx context.Context, id uuid.UUID) (domain.Client, error) {
 	updated, err := r.q.DeactivateClient(ctx, id)
 	if err != nil {

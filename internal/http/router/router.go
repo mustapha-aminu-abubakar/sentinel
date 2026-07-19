@@ -1,3 +1,4 @@
+// Package router wires the HTTP routes and middleware into a single http.Handler.
 package router
 
 import (
@@ -12,6 +13,7 @@ import (
 	"sentinel/internal/repository"
 )
 
+// NewRouter builds the full HTTP handler with all routes and CORS middleware.
 func NewRouter(clientRepo repository.ClientRepository, ruleRepo repository.RateRuleRepository, decisionEngine *engine.DecisionEngine, pool *pgxpool.Pool) http.Handler {
 	if decisionEngine == nil {
 		panic("router: decisionEngine is required for POST /v1/check")
@@ -44,11 +46,13 @@ func NewRouter(clientRepo repository.ClientRepository, ruleRepo repository.RateR
 	return corsMiddleware(mux)
 }
 
+// healthHandler responds with {"status":"ok"}.
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
+// corsMiddleware wraps a handler with permissive CORS headers for development.
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")

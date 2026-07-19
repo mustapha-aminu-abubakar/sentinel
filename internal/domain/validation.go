@@ -11,6 +11,7 @@ import (
 
 var apiIdentifierRegex = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,63}$`)
 
+// ValidateClientName checks that a client name is non-empty and under 255 characters.
 func ValidateClientName(name string) error {
 	name = strings.TrimSpace(name)
 	if name == "" {
@@ -22,6 +23,7 @@ func ValidateClientName(name string) error {
 	return nil
 }
 
+// ValidateClientStatus checks that the status is either active or inactive.
 func ValidateClientStatus(s ClientStatus) error {
 	if !s.IsValid() {
 		return fmt.Errorf("%w: invalid client status %q; must be 'active' or 'inactive'", ErrValidation, string(s))
@@ -29,6 +31,7 @@ func ValidateClientStatus(s ClientStatus) error {
 	return nil
 }
 
+// ValidateAPIIdentifier checks that an API identifier matches the allowed pattern.
 func ValidateAPIIdentifier(api string) error {
 	if api == "" {
 		return fmt.Errorf("%w: api identifier must not be empty", ErrValidation)
@@ -39,6 +42,7 @@ func ValidateAPIIdentifier(api string) error {
 	return nil
 }
 
+// ValidateRateRule checks all rate-rule fields for validity and aggregates errors.
 func ValidateRateRule(r RateRule) error {
 	var errs []error
 

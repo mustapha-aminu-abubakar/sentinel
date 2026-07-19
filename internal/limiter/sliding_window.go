@@ -16,8 +16,10 @@ import (
 //go:embed sliding_window.lua
 var slidingWindowScript string
 
+// ErrRedis is returned when a Redis operation in the limiter fails.
 var ErrRedis = errors.New("limiter: redis error")
 
+// Limiter implements a sliding-window rate limiter backed by a Redis Lua script.
 type Limiter struct {
 	rdb     redis.Cmdable
 	mu      sync.Mutex
@@ -25,10 +27,12 @@ type Limiter struct {
 	counter atomic.Int64
 }
 
+// New creates a Limiter backed by the given Redis client.
 func New(rdb redis.Cmdable) *Limiter {
 	return &Limiter{rdb: rdb}
 }
 
+// Check evaluates a rate-limit decision for the given client, API, and rule against the sliding window in Redis.
 func (l *Limiter) Check(ctx context.Context, clientID, api string, rule Rule) (Decision, error) {
 	l.mu.Lock()
 	if l.sha == "" {

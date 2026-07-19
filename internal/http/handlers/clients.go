@@ -1,3 +1,4 @@
+// Package handlers implements HTTP handlers for the rate-limiting API.
 package handlers
 
 import (
@@ -13,14 +14,17 @@ import (
 	"sentinel/internal/repository"
 )
 
+// ClientsHandler serves client CRUD endpoints backed by a repository.ClientRepository.
 type ClientsHandler struct {
 	repo repository.ClientRepository
 }
 
+// NewClientsHandler creates a ClientsHandler with the given repository.
 func NewClientsHandler(repo repository.ClientRepository) *ClientsHandler {
 	return &ClientsHandler{repo: repo}
 }
 
+// List handles GET /clients with optional ?status= filter.
 func (h *ClientsHandler) List(w http.ResponseWriter, r *http.Request) {
 	params := repository.ListClientsParams{}
 	if statusFilter := r.URL.Query().Get("status"); statusFilter != "" {
@@ -47,6 +51,7 @@ func (h *ClientsHandler) List(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]any{"clients": resp})
 }
 
+// Create handles POST /clients — validates input, stores client, returns 201.
 func (h *ClientsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var req dto.CreateClientRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -71,6 +76,7 @@ func (h *ClientsHandler) Create(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(dto.ClientToResponse(created))
 }
 
+// Get handles GET /clients/{id}.
 func (h *ClientsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)
@@ -89,6 +95,7 @@ func (h *ClientsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(dto.ClientToResponse(client))
 }
 
+// Update handles PATCH /clients/{id} with optional name/status fields.
 func (h *ClientsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := uuid.Parse(idStr)

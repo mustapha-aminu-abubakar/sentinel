@@ -1,3 +1,4 @@
+// Package fake provides in-memory implementations of repository interfaces for testing.
 package fake
 
 import (
@@ -12,17 +13,20 @@ import (
 	"sentinel/internal/repository"
 )
 
+// ClientRepository is an in-memory, thread-safe implementation of repository.ClientRepository.
 type ClientRepository struct {
 	mu      sync.RWMutex
 	clients map[uuid.UUID]domain.Client
 }
 
+// NewClientRepository creates an empty in-memory client repository.
 func NewClientRepository() *ClientRepository {
 	return &ClientRepository{
 		clients: make(map[uuid.UUID]domain.Client),
 	}
 }
 
+// Create inserts a client after validation, rejecting duplicates.
 func (r *ClientRepository) Create(ctx context.Context, client domain.Client) (domain.Client, error) {
 	if err := domain.ValidateClientName(client.Name); err != nil {
 		return domain.Client{}, err
@@ -45,6 +49,7 @@ func (r *ClientRepository) Create(ctx context.Context, client domain.Client) (do
 	return client, nil
 }
 
+// Get retrieves a client by ID.
 func (r *ClientRepository) Get(ctx context.Context, id uuid.UUID) (domain.Client, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -56,6 +61,7 @@ func (r *ClientRepository) Get(ctx context.Context, id uuid.UUID) (domain.Client
 	return c, nil
 }
 
+// List returns clients with optional status filtering.
 func (r *ClientRepository) List(ctx context.Context, params repository.ListClientsParams) ([]domain.Client, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -73,6 +79,7 @@ func (r *ClientRepository) List(ctx context.Context, params repository.ListClien
 	return result, nil
 }
 
+// Update applies partial updates to an existing client.
 func (r *ClientRepository) Update(ctx context.Context, id uuid.UUID, params repository.ClientUpdate) (domain.Client, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -100,6 +107,7 @@ func (r *ClientRepository) Update(ctx context.Context, id uuid.UUID, params repo
 	return c, nil
 }
 
+// Deactivate sets a client's status to inactive.
 func (r *ClientRepository) Deactivate(ctx context.Context, id uuid.UUID) (domain.Client, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -115,17 +123,20 @@ func (r *ClientRepository) Deactivate(ctx context.Context, id uuid.UUID) (domain
 	return c, nil
 }
 
+// RateRuleRepository is an in-memory, thread-safe implementation of repository.RateRuleRepository.
 type RateRuleRepository struct {
 	mu    sync.RWMutex
 	rules map[uuid.UUID]domain.RateRule
 }
 
+// NewRateRuleRepository creates an empty in-memory rate rule repository.
 func NewRateRuleRepository() *RateRuleRepository {
 	return &RateRuleRepository{
 		rules: make(map[uuid.UUID]domain.RateRule),
 	}
 }
 
+// Create inserts a rule after validation, rejecting duplicate client-API pairs.
 func (r *RateRuleRepository) Create(ctx context.Context, rule domain.RateRule) (domain.RateRule, error) {
 	if err := domain.ValidateRateRule(rule); err != nil {
 		return domain.RateRule{}, err
@@ -147,6 +158,7 @@ func (r *RateRuleRepository) Create(ctx context.Context, rule domain.RateRule) (
 	return rule, nil
 }
 
+// Get retrieves a rule by ID.
 func (r *RateRuleRepository) Get(ctx context.Context, id uuid.UUID) (domain.RateRule, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -158,6 +170,7 @@ func (r *RateRuleRepository) Get(ctx context.Context, id uuid.UUID) (domain.Rate
 	return rule, nil
 }
 
+// ListByClient returns all rules for the given client.
 func (r *RateRuleRepository) ListByClient(ctx context.Context, clientID uuid.UUID) ([]domain.RateRule, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -174,6 +187,7 @@ func (r *RateRuleRepository) ListByClient(ctx context.Context, clientID uuid.UUI
 	return result, nil
 }
 
+// List returns rules with optional client/API filtering.
 func (r *RateRuleRepository) List(ctx context.Context, params repository.ListRulesParams) ([]domain.RateRule, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -194,6 +208,7 @@ func (r *RateRuleRepository) List(ctx context.Context, params repository.ListRul
 	return result, nil
 }
 
+// GetByClientAndAPI finds a rule matching the client-API pair.
 func (r *RateRuleRepository) GetByClientAndAPI(ctx context.Context, clientID uuid.UUID, api string) (domain.RateRule, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -206,6 +221,7 @@ func (r *RateRuleRepository) GetByClientAndAPI(ctx context.Context, clientID uui
 	return domain.RateRule{}, fmt.Errorf("%w: rate rule not found", domain.ErrNotFound)
 }
 
+// Update applies partial updates to a rate rule.
 func (r *RateRuleRepository) Update(ctx context.Context, id uuid.UUID, params repository.RateRuleUpdate) (domain.RateRule, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

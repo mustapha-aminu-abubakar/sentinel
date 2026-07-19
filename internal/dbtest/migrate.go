@@ -9,6 +9,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// RunMigrations runs goose migrations against the given DSN from the specified directory.
 func RunMigrations(dsn, migrationsDir string) error {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {

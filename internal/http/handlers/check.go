@@ -11,14 +11,17 @@ import (
 	"sentinel/internal/http/httperr"
 )
 
+// CheckHandler serves the rate-limit check endpoint.
 type CheckHandler struct {
 	engine *engine.DecisionEngine
 }
 
+// NewCheckHandler creates a handler that uses the decision engine for rate-limit checks.
 func NewCheckHandler(eng *engine.DecisionEngine) *CheckHandler {
 	return &CheckHandler{engine: eng}
 }
 
+// Check handles POST /v1/check — accepts client_id and api, returns allowed/remaining or rejected/retry_after.
 func (h *CheckHandler) Check(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 

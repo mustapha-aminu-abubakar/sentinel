@@ -1,3 +1,4 @@
+// Package database provides Postgres connection management, pooling, and migration support.
 package database
 
 import (
@@ -8,6 +9,7 @@ import (
 	"github.com/pressly/goose/v3"
 )
 
+// RunMigrations applies all pending goose migrations from the given directory.
 func RunMigrations(db *sql.DB, migrationsDir string) error {
 	if err := goose.SetDialect("postgres"); err != nil {
 		return fmt.Errorf("goose set dialect: %w", err)

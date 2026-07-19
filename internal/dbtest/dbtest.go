@@ -1,3 +1,4 @@
+// Package dbtest provides test helpers for spinning up Postgres containers for integration tests.
 package dbtest
 
 import (
@@ -12,6 +13,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
+// StartPostgres starts a Postgres testcontainer and returns a connection pool and teardown function.
 func StartPostgres() (*pgxpool.Pool, func(), error) {
 	pool, _, teardown, err := startPostgres()
 	if err != nil {
@@ -20,6 +22,7 @@ func StartPostgres() (*pgxpool.Pool, func(), error) {
 	return pool, teardown, nil
 }
 
+// StartPostgresWithDSN starts a Postgres testcontainer and returns the pool, DSN string, and teardown function.
 func StartPostgresWithDSN() (*pgxpool.Pool, string, func(), error) {
 	return startPostgres()
 }

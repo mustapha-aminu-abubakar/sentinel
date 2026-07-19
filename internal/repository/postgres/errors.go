@@ -1,3 +1,4 @@
+// Package postgres implements repository interfaces against a Postgres database using sqlc-generated queries.
 package postgres
 
 import (
@@ -9,6 +10,7 @@ import (
 	"sentinel/internal/domain"
 )
 
+// mapPgError converts Postgres and pgx errors into domain sentinel errors.
 func mapPgError(err error) error {
 	if err == nil {
 		return nil

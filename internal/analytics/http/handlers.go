@@ -1,3 +1,4 @@
+// Package analyticshttp provides HTTP handlers for analytics queries (usage and latency).
 package analyticshttp
 
 import (
@@ -14,14 +15,17 @@ import (
 	"sentinel/internal/http/httperr"
 )
 
+// AnalyticsHandler serves aggregated analytics from Postgres.
 type AnalyticsHandler struct {
 	pool *pgxpool.Pool
 }
 
+// NewAnalyticsHandler creates a handler that queries analytics tables directly.
 func NewAnalyticsHandler(pool *pgxpool.Pool) *AnalyticsHandler {
 	return &AnalyticsHandler{pool: pool}
 }
 
+// GetUsage handles GET /analytics/usage with optional client_id, api, status, bucket, from, to filters.
 func (h *AnalyticsHandler) GetUsage(w http.ResponseWriter, r *http.Request) {
 	filter, err := parseUsageParams(r)
 	if err != nil {
@@ -45,6 +49,7 @@ func (h *AnalyticsHandler) GetUsage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetLatency handles GET /analytics/latency with optional client_id, api, bucket, from, to filters.
 func (h *AnalyticsHandler) GetLatency(w http.ResponseWriter, r *http.Request) {
 	filter, err := parseLatencyParams(r)
 	if err != nil {
@@ -68,6 +73,7 @@ func (h *AnalyticsHandler) GetLatency(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// commonParams holds the shared query-string parameters between usage and latency endpoints.
 type commonParams struct {
 	clientID *string
 	api      *string
@@ -76,6 +82,7 @@ type commonParams struct {
 	to       *time.Time
 }
 
+// parseCommonParams extracts and validates shared query parameters from the URL.
 func parseCommonParams(q map[string][]string) (commonParams, error) {
 	p := commonParams{bucket: "day"}
 
@@ -111,6 +118,7 @@ func parseCommonParams(q map[string][]string) (commonParams, error) {
 	return p, nil
 }
 
+// getFirst returns the first value for a query-string key, or empty string.
 func getFirst(q map[string][]string, key string) string {
 	vals, ok := q[key]
 	if !ok || len(vals) == 0 {
@@ -119,6 +127,7 @@ func getFirst(q map[string][]string, key string) string {
 	return vals[0]
 }
 
+// parseUsageParams builds a UsageFilter from the request query string.
 func parseUsageParams(r *http.Request) (store.UsageFilter, error) {
 	cp, err := parseCommonParams(r.URL.Query())
 	if err != nil {
@@ -143,6 +152,7 @@ func parseUsageParams(r *http.Request) (store.UsageFilter, error) {
 	return filter, nil
 }
 
+// parseLatencyParams builds a LatencyFilter from the request query string.
 func parseLatencyParams(r *http.Request) (store.LatencyFilter, error) {
 	cp, err := parseCommonParams(r.URL.Query())
 	if err != nil {
