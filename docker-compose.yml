@@ -154,6 +154,20 @@ services:
     networks:
       - sentinel
 
+  k6:
+    image: grafana/k6:latest
+    profiles: ["loadtest"]
+    ports:
+      - "5660:5660"
+    volumes:
+      - ./loadtest:/scripts
+    command: dashboard run /scripts/scenario.js
+    depends_on:
+      nginx:
+        condition: service_started
+    networks:
+      - sentinel
+
 volumes:
   pgdata:
   kafka-data:

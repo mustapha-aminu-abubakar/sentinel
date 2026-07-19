@@ -43,6 +43,10 @@ itest:
 e2e-script:
 	@scripts/e2e.sh
 
+# k6 load test with real-time web dashboard at http://localhost:5660
+loadtest:
+	@docker compose --profile loadtest run --rm k6
+
 # Clean the binary
 clean:
 	@echo "Cleaning..."
