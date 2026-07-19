@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -141,7 +142,7 @@ func TestRateRuleRepository_Create_DuplicateReturnsConflict(t *testing.T) {
 		RequestsAllowed: 200,
 		WindowSeconds:   120,
 	})
-	if err != domain.ErrConflict {
+	if !errors.Is(err, domain.ErrConflict) {
 		t.Fatalf("expected ErrConflict for duplicate, got %v", err)
 	}
 }
@@ -157,7 +158,7 @@ func TestRateRuleRepository_Create_InvalidInput(t *testing.T) {
 		RequestsAllowed: 100,
 		WindowSeconds:   60,
 	})
-	if err != domain.ErrValidation {
+	if !errors.Is(err, domain.ErrValidation) {
 		t.Fatalf("expected ErrValidation for empty api, got %v", err)
 	}
 
@@ -168,7 +169,7 @@ func TestRateRuleRepository_Create_InvalidInput(t *testing.T) {
 		RequestsAllowed: 0,
 		WindowSeconds:   60,
 	})
-	if err != domain.ErrValidation {
+	if !errors.Is(err, domain.ErrValidation) {
 		t.Fatalf("expected ErrValidation for zero requests_allowed, got %v", err)
 	}
 }
@@ -188,7 +189,7 @@ func TestRateRuleRepository_GetByClientAndAPI(t *testing.T) {
 	}
 
 	_, err = repo.GetByClientAndAPI(context.Background(), client.ID, "nonexistent")
-	if err != domain.ErrNotFound {
+	if !errors.Is(err, domain.ErrNotFound) {
 		t.Fatalf("expected ErrNotFound for missing (client, api), got %v", err)
 	}
 }

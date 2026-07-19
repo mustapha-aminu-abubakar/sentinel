@@ -49,6 +49,24 @@ client_id=$(curl -s -X POST http://localhost:8080/clients \
 
 ## Quick start (judges — run this first)
 
+Install dependencies first:
+
+```bash
+# Copy environment file
+cp .env.example .env
+
+# Install Go dependencies
+go mod download
+
+# Install dashboard dependencies
+cd sentinel-dashboard && npm install && cd ..
+
+# macOS: make is pre-installed
+# Linux: sudo apt install make      (Debian/Ubuntu)
+#         sudo dnf install make      (Fedora)
+# Windows: choco install make       (Chocolatey)
+```
+
 ```bash
 make docker-run        # Full stack: Postgres, Redis, Kafka, API, Dashboard
 ```
@@ -64,11 +82,11 @@ To test once it's running:
 ```bash
 make test              # Unit tests (no Docker)
 make e2e-script        # E2E smoke test (needs docker-run first)
-make loadtest          # k6 load test + web dashboard at :5660
+make loadtest          # k6 load test + web dashboard at :5660 + results at ./loadtest/results.html
 ```
 > No `make`? → 
 ```bash
-go test ./... -v                               # Unit tests (no Docker)
+go test -race ./... -v                         # Unit tests (no Docker)
 bash scripts/e2e.sh                            # E2E smoke test (needs docker-run first)
 docker compose --profile loadtest up k6        # k6 load test + web dashboard at :5660 + results at ./loadtest/results.html
 ```
@@ -249,7 +267,7 @@ Requires Postgres, Redis, and Kafka running (use `make docker-run` for those).
 make test
 ```
 
-Fallback: `go test ./... -v`
+Fallback: `go test -race ./... -v`
 
 Fast, Redis-free tests (uses `miniredis`). No Docker needed.
 

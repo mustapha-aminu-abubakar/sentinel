@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"os"
 	"testing"
 
@@ -101,7 +102,7 @@ func TestClientRepository_Get_NotFound(t *testing.T) {
 	repo := NewClientRepository(testPool)
 
 	_, err := repo.Get(context.Background(), uuid.New())
-	if err != domain.ErrNotFound {
+	if !errors.Is(err, domain.ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
 }
@@ -191,7 +192,7 @@ func TestClientRepository_Create_InvalidName(t *testing.T) {
 		Name:   "",
 		Status: domain.ClientStatusActive,
 	})
-	if err != domain.ErrValidation {
+	if !errors.Is(err, domain.ErrValidation) {
 		t.Fatalf("expected ErrValidation for empty name, got %v", err)
 	}
 }
